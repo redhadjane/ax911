@@ -1,0 +1,36 @@
+# Sonata Diagnostic — IPA v0.1 source
+
+This is the first **native iPhone shell** for the approved Sonata Diagnostic design.
+
+## What is real in v0.1
+- Native iOS app (SwiftUI + WKWebView shell)
+- Native CoreBluetooth BLE connection to **OBDLink CX**
+- OBDLink CX UART service support: FFF0 / FFF1 / FFF2
+- Standard OBD-II initialization
+- Reads VIN (Mode 09), active engine DTCs (Mode 03), RPM, speed, coolant temperature, engine load, throttle, intake-air temperature, STFT, LTFT, fuel level and adapter voltage when the vehicle supports them
+- Sends those actual values into the premium UI
+- If actual P200A or P0562 is returned, the app selects the matching plain-English diagnostic explanation
+- In live/real mode, Hyundai coding/settings stay disabled until their exact module commands are verified
+
+## What remains demo/research
+- Hyundai enhanced BCM / Smart Key / ABS / SRS scanning
+- intake-runner commanded/reported enhanced PIDs
+- comfort-setting writes
+- code clearing
+- CarPlay
+
+Those are intentionally not guessed.
+
+## Free IPA build without owning a modern Mac
+The included GitHub Actions workflow builds an **unsigned physical-device IPA** on a GitHub macOS runner. It is intended to be re-signed/sideloaded with the user's own free Apple development identity using a tool such as SideStore.
+
+1. Put this project in a GitHub repository.
+2. Open **Actions → Build unsigned Sonata Diagnostic IPA → Run workflow**.
+3. Download the `SonataDiagnostic-unsigned-ipa` artifact.
+4. Extract the artifact ZIP to get `SonataDiagnostic-unsigned.ipa`.
+5. Sideload/re-sign it with your own Apple ID workflow.
+
+The app requests Bluetooth permission the first time it scans for the OBDLink CX.
+
+## Safety model
+Version 0.1 is read-only. It does not transmit Hyundai module configuration writes, immobilizer commands, SRS/ABS coding, or engine calibration commands.

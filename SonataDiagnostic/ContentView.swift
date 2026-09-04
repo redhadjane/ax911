@@ -80,9 +80,15 @@ struct ContentView: View {
                 onVehicle: { withAnimation(.easeInOut(duration: 0.18)) { route = .vehicle } }
             )
             .fixedSize(horizontal: false, vertical: true)
-            routeScreen
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+            GeometryReader { contentProxy in
+                routeScreen
+                    .frame(
+                        width: contentProxy.size.width,
+                        height: contentProxy.size.height,
+                        alignment: .top
+                    )
+                    .clipped()
+            }
             BottomNavigation(selection: $route)
                 .fixedSize(horizontal: false, vertical: true)
         }

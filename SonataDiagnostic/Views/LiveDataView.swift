@@ -3,14 +3,15 @@ import SwiftUI
 struct LiveDataView: View {
     @EnvironmentObject private var obd: OBDLinkCXManager
     let demoMode: Bool
+    let scenario: DemoScenario
     @State private var category = "All"
     private let categories = ["All", "Engine", "Fuel", "Sensors"]
-    private var snapshot: VehicleSnapshot { demoMode ? DemoVehicle.snapshot : obd.snapshot }
+    private var snapshot: VehicleSnapshot { demoMode ? DemoVehicle.snapshot(for: scenario) : obd.snapshot }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                HStack { ScreenHeader(title: "Live Data", subtitle: "Supported standard OBD-II readings"); if demoMode { StatusBadge(text: "DEMO", color: SDTheme.amber) } }
+                ScreenHeader(title: "Live Data", subtitle: "Useful readings with a current value, reference range and operating context.")
                 categoryBar
                 if rows.isEmpty { emptyState } else {
                     VStack(spacing: 0) {

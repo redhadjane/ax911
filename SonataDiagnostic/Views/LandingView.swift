@@ -2,108 +2,68 @@ import SwiftUI
 
 struct LandingView: View {
     @EnvironmentObject private var obd: OBDLinkCXManager
-    @Binding var demoMode: Bool
-
-    private var snapshot: VehicleSnapshot { demoMode ? DemoVehicle.snapshot : obd.snapshot }
-    private var connected: Bool { demoMode || obd.state == .connected || obd.state == .reading || obd.state == .finished }
-    private var busy: Bool { obd.state == .scanning || obd.state == .connecting || obd.state == .reading }
+    let onStartDemo: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                brandHero
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("SONATA")
+                        .font(.system(size: 46, weight: .bold, design: .rounded)).tracking(0.8)
+                    HStack(alignment: .top, spacing: 1) {
+                        Text("DIAGNOSTIC").font(.system(size: 31, weight: .light, design: .rounded)).tracking(0.9)
+                        Text("°").font(.system(size: 18, weight: .medium)).padding(.top, 1)
+                    }
+                    Text("Your car. Your data.\nNo subscriptions.")
+                        .font(.system(size: 17, weight: .regular)).foregroundStyle(SDTheme.muted)
+                        .lineSpacing(4).padding(.top, 25)
+                }
+
+                VehicleRenderView(angle: .hero)
+                    .frame(maxWidth: .infinity).frame(height: 268)
+                    .padding(.top, 6)
+
                 connectionCard
-                if connected { overview }
+                Button(action: onStartDemo) {
+                    Label("Interactive Demo Mode", systemImage: "play.circle.fill")
+                        .font(.system(size: 14, weight: .medium)).foregroundStyle(SDTheme.muted)
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                }.buttonStyle(.plain)
             }
-            .padding(.horizontal, 18).padding(.top, 18).padding(.bottom, 24)
+            .padding(.horizontal, 22).padding(.top, 34).padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(SDTheme.background.ignoresSafeArea()).toolbar(.hidden, for: .navigationBar)
     }
 
-    private var brandHero: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("SONATA").font(.system(size: 42, weight: .bold, design: .rounded)).tracking(1.2)
-            Text("DIAGNOSTIC").font(.system(size: 30, weight: .light, design: .rounded)).tracking(1.8)
-            Text("Your car. Your data. No subscriptions.").font(.system(size: 16)).foregroundStyle(SDTheme.muted).padding(.top, 9)
-            VehicleRenderView(angle: .hero).frame(maxWidth: .infinity).frame(height: 245).padding(.top, 5)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     private var connectionCard: some View {
-        VStack(spacing: 13) {
-            HStack(spacing: 11) {
-                Circle().fill(connectionColor.opacity(0.12)).frame(width: 42, height: 42).overlay(Image(systemName: "dot.radiowaves.left.and.right").font(.system(size: 17, weight: .bold)).foregroundStyle(connectionColor))
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 13).fill(SDTheme.green.opacity(0.12)).frame(width: 50, height: 50)
+                    .overlay(Image("OBDLinkCX").resizable().scaledToFit().padding(7))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("OBDLink CX").font(.system(size: 18, weight: .semibold))
-                    Text(demoMode ? "Demo Mode — sample data" : obd.message).font(.system(size: 13)).foregroundStyle(SDTheme.muted).lineLimit(2)
+                    Text("OBDLink CX").font(.system(size: 18, weight: .bold))
+                    Text(obd.message == "Disconnected" ? "Ready for Bluetooth LE" : obd.message)
+                        .font(.system(size: 13)).foregroundStyle(SDTheme.muted).lineLimit(2)
                 }
                 Spacer()
-                if busy { ProgressView().tint(SDTheme.green) } else { StatusBadge(text: connectionLabel, color: connectionColor) }
             }
-            if busy { ProgressView(value: Double(obd.progress), total: 100).tint(SDTheme.green) }
-            if !snapshot.vin.isEmpty {
-                Divider().overlay(SDTheme.border)
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("2015 Hyundai Sonata").font(.system(size: 16, weight: .semibold))
-                        Text("VIN · \(snapshot.vin)").font(.system(size: 12, design: .monospaced)).foregroundStyle(SDTheme.muted)
-                    }
-                    Spacer()
-                }
+            .padding(18)
+            Divider().overlay(SDTheme.border)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("2015 Hyundai Sonata Sport").font(.system(size: 16, weight: .bold))
+                Text("VIN: Will be confirmed by OBD/CAN")
+                    .font(.system(size: 12, weight: .medium)).foregroundStyle(SDTheme.muted)
             }
-            Button {
-                if demoMode { demoMode = false }
-                if busy || connected { obd.disconnect() } else { obd.connect() }
-            } label: { Text(busy || (!demoMode && connected) ? "Disconnect" : "Connect") }
-            .buttonStyle(WhiteButtonStyle())
-            Button {
-                demoMode.toggle()
-                if demoMode { obd.disconnect() }
-            } label: {
-                Label(demoMode ? "Exit Demo Mode" : "Demo Mode", systemImage: "play.circle").font(.system(size: 14, weight: .semibold)).foregroundStyle(demoMode ? SDTheme.amber : SDTheme.muted)
-            }
-            .buttonStyle(.plain)
-        }
-        .premiumCard()
-    }
+            .padding(.horizontal, 18).padding(.top, 16)
+            Button("Connect") { obd.connect() }
+                .buttonStyle(WhiteButtonStyle()).padding(18)
 
-    private var overview: some View {
-        VStack(spacing: 13) {
-            HStack { SectionLabel(text: "Overview"); if demoMode { StatusBadge(text: "DEMO", color: SDTheme.amber) } }
-            VehicleRenderView(angle: .hero).frame(height: 155)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
-                SystemHealthCard(name: "Engine", detail: snapshot.dtcs.isEmpty ? "No active codes" : "\(snapshot.dtcs.count) issue detected", state: .detected, warning: !snapshot.dtcs.isEmpty)
-                SystemHealthCard(name: "Emissions", detail: snapshot.dtcs.isEmpty ? "Standard OBD ready" : "Review engine DTC", state: .detected, warning: !snapshot.dtcs.isEmpty)
-                if demoMode {
-                    SystemHealthCard(name: "Transmission", detail: "Demo capability", state: .detected)
-                    SystemHealthCard(name: "Electrical", detail: "Demo capability", state: .detected)
-                    SystemHealthCard(name: "Intake System", detail: "Issue detected", state: .detected, warning: true)
-                    SystemHealthCard(name: "ABS", detail: "Demo capability", state: .detected)
-                }
-            }
-            if hasMetrics {
-                SectionLabel(text: "Selected live data")
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
-                    if snapshot.rpm != nil { MetricCard(title: "RPM", value: formatReading(snapshot.rpm, suffix: "", digits: 0), icon: "gauge.with.dots.needle.50percent") }
-                    if snapshot.coolantF != nil { MetricCard(title: "Coolant", value: formatReading(snapshot.coolantF, suffix: "°F"), icon: "thermometer.medium") }
-                    if snapshot.speedMph != nil { MetricCard(title: "Speed", value: formatReading(snapshot.speedMph, suffix: " mph", digits: 0), icon: "speedometer") }
-                    if snapshot.voltage != nil { MetricCard(title: "Battery", value: formatReading(snapshot.voltage, suffix: " V", digits: 1), icon: "bolt.fill") }
-                }
+            if case .failed(let reason) = obd.state {
+                Text(reason).font(.caption).foregroundStyle(SDTheme.red).padding(.horizontal, 18).padding(.bottom, 16)
             }
         }
-    }
-
-    private var hasMetrics: Bool { snapshot.rpm != nil || snapshot.coolantF != nil || snapshot.speedMph != nil || snapshot.voltage != nil }
-    private var connectionColor: Color {
-        if demoMode { return SDTheme.amber }
-        if case .failed = obd.state { return SDTheme.red }
-        return connected ? SDTheme.green : SDTheme.muted
-    }
-    private var connectionLabel: String {
-        if demoMode { return "DEMO" }
-        if case .failed = obd.state { return "FAILED" }
-        return connected ? "CONNECTED" : "OFFLINE"
+        .background(SDTheme.panel, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(SDTheme.border, lineWidth: 1))
     }
 }

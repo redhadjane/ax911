@@ -8,8 +8,8 @@
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
   <key>CFBundlePackageType</key><string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
-  <key>CFBundleShortVersionString</key><string>0.2.2</string>
-  <key>CFBundleVersion</key><string>4</string>
+  <key>CFBundleShortVersionString</key><string>0.3.0</string>
+  <key>CFBundleVersion</key><string>5</string>
   <key>LSRequiresIPhoneOS</key><true/>
   <key>NSBluetoothAlwaysUsageDescription</key><string>Sonata Diagnostic uses Bluetooth to connect to your OBDLink CX adapter and read vehicle diagnostic data.</string>
   <key>NSBluetoothPeripheralUsageDescription</key><string>Sonata Diagnostic uses Bluetooth to connect to your OBDLink CX adapter.</string>

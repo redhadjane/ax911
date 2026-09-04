@@ -3,13 +3,14 @@ import SwiftUI
 struct VehicleView: View {
     @EnvironmentObject private var obd: OBDLinkCXManager
     let demoMode: Bool
-    private var snapshot: VehicleSnapshot { demoMode ? DemoVehicle.snapshot : obd.snapshot }
+    let scenario: DemoScenario
+    private var snapshot: VehicleSnapshot { demoMode ? DemoVehicle.snapshot(for: scenario) : obd.snapshot }
     private var scanned: Bool { demoMode || snapshot.hasAnyReading }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                HStack { ScreenHeader(title: "Vehicle", subtitle: "Module response is truth — not the trim badge"); if demoMode { StatusBadge(text: "DEMO", color: SDTheme.amber) } }
+                ScreenHeader(title: "3D Vehicle", subtitle: "A visual layer driven by signals the car actually reports.")
                 vehicleMap
                 capabilityProfile
             }.padding(18)
@@ -20,8 +21,9 @@ struct VehicleView: View {
 
     private var vehicleMap: some View {
         ZStack {
-            VehicleRenderView(angle: .top).frame(height: 420)
-            VStack {
+            VehicleGrid().opacity(0.7)
+            VehicleRenderView(angle: .top).frame(width: 170, height: 420)
+            VStack(spacing: 0) {
                 HStack {
                     VehicleStatusTile(title: "Battery", value: formatReading(snapshot.voltage, suffix: " V", digits: 1), icon: "bolt.fill", state: snapshot.voltage == nil ? .unavailable : .detected)
                     Spacer()
@@ -29,13 +31,26 @@ struct VehicleView: View {
                 }
                 Spacer()
                 HStack {
-                    VehicleStatusTile(title: "Check Engine", value: scanned ? (snapshot.dtcs.isEmpty ? "Off" : "On") : "Not scanned", icon: "engine.combustion.fill", state: scanned ? .detected : .unavailable, warning: !snapshot.dtcs.isEmpty)
+                    VehicleStatusTile(title: "Driver Door", value: demoMode ? "Open" : "Not available", icon: "car.side.rear.open", state: demoMode ? .detected : .unavailable, warning: demoMode)
                     Spacer()
-                    VehicleStatusTile(title: "Fuel", value: formatReading(snapshot.fuelPct, suffix: "%"), icon: "fuelpump.fill", state: snapshot.fuelPct == nil ? .unavailable : .detected)
+                    VehicleStatusTile(title: "Fuel Level", value: formatReading(snapshot.fuelPct, suffix: "%"), icon: "fuelpump.fill", state: snapshot.fuelPct == nil ? .unavailable : .detected)
                 }
-            }.frame(height: 385)
+                Spacer()
+                HStack {
+                    VehicleStatusTile(title: "Intake System", value: snapshot.dtcs.contains("P200A") ? "Issue" : "Normal", icon: "exclamationmark.triangle.fill", state: scanned ? .detected : .unavailable, warning: snapshot.dtcs.contains("P200A"))
+                    Spacer()
+                    VehicleStatusTile(title: "Check Engine", value: scanned ? (snapshot.dtcs.isEmpty ? "Off" : "On") : "Not scanned", icon: "engine.combustion.fill", state: scanned ? .detected : .unavailable, warning: !snapshot.dtcs.isEmpty)
+                }
+                HStack(spacing: 5) {
+                    Text("Mileage").foregroundStyle(SDTheme.muted)
+                    Text(demoMode ? "128,540 mi" : "Not available").foregroundStyle(.white).fontWeight(.semibold)
+                    if demoMode { StatusBadge(text: "DEMO", color: SDTheme.amber) }
+                }
+                .font(.system(size: 11)).padding(.horizontal, 14).padding(.vertical, 9)
+                .background(SDTheme.panel, in: Capsule()).overlay(Capsule().stroke(SDTheme.border, lineWidth: 0.7))
+            }.frame(height: 500)
         }
-        .frame(maxWidth: .infinity).padding(12).background(SDTheme.panel, in: RoundedRectangle(cornerRadius: 22, style: .continuous)).overlay(RoundedRectangle(cornerRadius: 22).stroke(SDTheme.border, lineWidth: 0.7))
+        .frame(maxWidth: .infinity).frame(height: 530).padding(12).background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 22, style: .continuous)).overlay(RoundedRectangle(cornerRadius: 22).stroke(SDTheme.border, lineWidth: 0.7))
     }
 
     private var capabilityProfile: some View {
@@ -48,6 +63,23 @@ struct VehicleView: View {
             CapabilityRow(title: "ABS / ESC", detail: "No experimental probing", state: .readOnly)
             CapabilityRow(title: "SRS / Airbag", detail: "Protected system", state: .readOnly)
         }.premiumCard(padding: 0)
+    }
+}
+
+private struct VehicleGrid: View {
+    var body: some View {
+        GeometryReader { proxy in
+            Path { path in
+                for x in stride(from: 0.0, through: proxy.size.width, by: 42) {
+                    path.move(to: CGPoint(x: x, y: 0))
+                    path.addLine(to: CGPoint(x: x, y: proxy.size.height))
+                }
+                for y in stride(from: 0.0, through: proxy.size.height, by: 42) {
+                    path.move(to: CGPoint(x: 0, y: y))
+                    path.addLine(to: CGPoint(x: proxy.size.width, y: y))
+                }
+            }.stroke(Color.white.opacity(0.045), lineWidth: 0.6)
+        }
     }
 }
 

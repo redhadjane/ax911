@@ -1,18 +1,43 @@
 import Foundation
 import SwiftUI
 
-enum AppTab: String, CaseIterable, Identifiable {
-    case home = "Home", live = "Live", diagnostics = "Diagnostics", settings = "Settings", vehicle = "Vehicle"
+enum AppRoute: String, CaseIterable, Identifiable {
+    case overview = "Overview"
+    case live = "Live Data"
+    case diagnostics = "Diagnostics"
+    case vehicle = "3D Vehicle"
+    case settings = "Car Settings"
+    case reports = "Reports"
+    case maintenance = "Maintenance"
+    case logging = "Data Logging"
+    case profile = "Vehicle Profile"
+    case about = "About"
+
     var id: String { rawValue }
     var icon: String {
         switch self {
-        case .home: return "house.fill"
-        case .live: return "waveform.path.ecg"
-        case .diagnostics: return "stethoscope"
+        case .overview: return "house"
+        case .live: return "chart.bar.xaxis"
+        case .diagnostics: return "car.rear.waves.up"
+        case .vehicle: return "car.top"
         case .settings: return "slider.horizontal.3"
-        case .vehicle: return "car.top.radiowaves.rear.left.and.rear.right.fill"
+        case .reports: return "doc.text"
+        case .maintenance: return "wrench.and.screwdriver"
+        case .logging: return "chart.bar.xaxis"
+        case .profile: return "square.grid.2x2"
+        case .about: return "info.circle"
         }
     }
+
+    static let bottomRoutes: [AppRoute] = [.overview, .live, .diagnostics, .settings]
+    static let menuRoutes: [AppRoute] = [.overview, .live, .diagnostics, .vehicle, .settings, .reports, .maintenance, .logging, .profile, .about]
+}
+
+enum DemoScenario: String, CaseIterable, Identifiable {
+    case intake = "P200A · Intake airflow issue"
+    case healthy = "Healthy vehicle"
+    case battery = "P0562 · Low system voltage"
+    var id: String { rawValue }
 }
 
 enum CapabilityState: String {
@@ -61,7 +86,16 @@ struct DiagnosticRecord: Identifiable, Hashable {
 }
 
 enum DemoVehicle {
-    static let snapshot = VehicleSnapshot(vin: "5NPE34AF0FH012345", dtcs: ["P200A"], rpm: 798, speedMph: 0, coolantF: 194, loadPct: 21, throttlePct: 11.4, intakeAirF: 82, shortFuelTrimPct: 2.3, longFuelTrimPct: 3.1, fuelPct: 62, voltage: 12.4)
+    static func snapshot(for scenario: DemoScenario) -> VehicleSnapshot {
+        switch scenario {
+        case .intake:
+            return VehicleSnapshot(vin: "5NPE34AF0FH012345", dtcs: ["P200A"], rpm: 800, speedMph: 0, coolantF: 194, loadPct: 21, throttlePct: 11.4, intakeAirF: 82, shortFuelTrimPct: 11.8, longFuelTrimPct: 7.4, fuelPct: 62, voltage: 14.1)
+        case .healthy:
+            return VehicleSnapshot(vin: "5NPE34AF0FH012345", dtcs: [], rpm: 782, speedMph: 0, coolantF: 191, loadPct: 18, throttlePct: 10.2, intakeAirF: 80, shortFuelTrimPct: 2.1, longFuelTrimPct: 3.2, fuelPct: 62, voltage: 14.2)
+        case .battery:
+            return VehicleSnapshot(vin: "5NPE34AF0FH012345", dtcs: ["P0562"], rpm: 0, speedMph: 0, coolantF: 76, loadPct: 0, throttlePct: 9.8, intakeAirF: 75, shortFuelTrimPct: 0, longFuelTrimPct: 2.4, fuelPct: 61, voltage: 11.7)
+        }
+    }
 }
 
 extension VehicleSnapshot {

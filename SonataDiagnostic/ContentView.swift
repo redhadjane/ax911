@@ -79,10 +79,12 @@ struct ContentView: View {
                 onMenu: { withAnimation(.spring(response: 0.30, dampingFraction: 0.9)) { menuPresented = true } },
                 onVehicle: { withAnimation(.easeInOut(duration: 0.18)) { route = .vehicle } }
             )
+            .fixedSize(horizontal: false, vertical: true)
             routeScreen
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
             BottomNavigation(selection: $route)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

@@ -39,6 +39,8 @@ struct IntelligenceView: View {
                 }
                 .onChange(of: conversation.count) { _ in if let id = conversation.last?.id { withAnimation { reader.scrollTo(id, anchor: .bottom) } } }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .layoutPriority(1)
 
             HStack(spacing: 10) {
                 TextField("Ask about your scan…", text: $question, axis: .vertical)
@@ -48,7 +50,10 @@ struct IntelligenceView: View {
                     Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(.black).frame(width: 44, height: 44).background(SDTheme.green, in: Circle())
                 }.disabled(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }.padding(.horizontal, 16).padding(.vertical, 10).background(SDTheme.background.opacity(0.96)).overlay(alignment: .top) { Rectangle().fill(SDTheme.border).frame(height: 0.7) }
-        }.background(Color.clear)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.clear)
     }
 
     private var intelligenceCard: some View {

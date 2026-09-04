@@ -116,8 +116,16 @@ jobs:
             shift
             xcrun simctl terminate "$DEVICE_ID" com.redhadjane.sonatadiagnostic >/dev/null 2>&1 || true
             xcrun simctl launch "$DEVICE_ID" com.redhadjane.sonatadiagnostic "$@"
-            sleep 1
+            sleep 3
             xcrun simctl io "$DEVICE_ID" screenshot "visual-qa/$NAME.png"
+            SIZE=$(stat -f%z "visual-qa/$NAME.png")
+            if [ "$SIZE" -lt 150000 ]; then
+              echo "$NAME was captured before the app rendered; retrying"
+              sleep 3
+              xcrun simctl io "$DEVICE_ID" screenshot "visual-qa/$NAME.png"
+              SIZE=$(stat -f%z "visual-qa/$NAME.png")
+            fi
+            test "$SIZE" -ge 150000
           }
 
           capture 01-landing

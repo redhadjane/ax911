@@ -1,8 +1,8 @@
-# Sonata Diagnostic — IPA v0.1 source
+# Sonata Diagnostic — IPA v0.2 source
 
 This is the first **native iPhone shell** for the approved Sonata Diagnostic design.
 
-## What is real in v0.1
+## What is real in v0.2
 - Native iOS app (SwiftUI + WKWebView shell)
 - Native CoreBluetooth BLE connection to **OBDLink CX**
 - OBDLink CX UART service support: FFF0 / FFF1 / FFF2
@@ -33,4 +33,11 @@ The included GitHub Actions workflow builds an **unsigned physical-device IPA** 
 The app requests Bluetooth permission the first time it scans for the OBDLink CX.
 
 ## Safety model
-Version 0.1 is read-only. It does not transmit Hyundai module configuration writes, immobilizer commands, SRS/ABS coding, or engine calibration commands.
+Version 0.2 is read-only. It does not transmit Hyundai module configuration writes, immobilizer commands, SRS/ABS coding, or engine calibration commands.
+
+## v0.2 presentation rebuild
+- Compact custom Home / Live / Diagnostics / Settings / Vehicle navigation that respects the safe area
+- Premium Sonata hero and top-down vehicle artwork
+- Dynamic Real Mode screens that render only returned OBD values and never substitute demo data
+- Three-level fault detail: Explain to Me, Readings, and Mechanic Details
+- Context-aware expected ranges, explicit unavailable states, saved local reports, and locked Hyundai settings

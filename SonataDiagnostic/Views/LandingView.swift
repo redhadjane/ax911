@@ -15,17 +15,17 @@ struct LandingView: View {
                 connectionCard
                 if connected { overview }
             }
-            .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 18)
+            .padding(.horizontal, 18).padding(.top, 18).padding(.bottom, 24)
         }
         .background(SDTheme.background).toolbar(.hidden, for: .navigationBar)
     }
 
     private var brandHero: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("SONATA").font(.system(size: 34, weight: .bold, design: .rounded)).tracking(1.2)
-            Text("DIAGNOSTIC").font(.system(size: 24, weight: .light, design: .rounded)).tracking(1.8)
-            Text("Your car. Your data. No subscriptions.").font(.subheadline).foregroundStyle(SDTheme.muted).padding(.top, 7)
-            VehicleRenderView(angle: .hero).frame(maxWidth: .infinity).frame(height: 205).padding(.top, 3)
+            Text("SONATA").font(.system(size: 42, weight: .bold, design: .rounded)).tracking(1.2)
+            Text("DIAGNOSTIC").font(.system(size: 30, weight: .light, design: .rounded)).tracking(1.8)
+            Text("Your car. Your data. No subscriptions.").font(.system(size: 16)).foregroundStyle(SDTheme.muted).padding(.top, 9)
+            VehicleRenderView(angle: .hero).frame(maxWidth: .infinity).frame(height: 245).padding(.top, 5)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -33,10 +33,10 @@ struct LandingView: View {
     private var connectionCard: some View {
         VStack(spacing: 13) {
             HStack(spacing: 11) {
-                Circle().fill(connectionColor.opacity(0.12)).frame(width: 34, height: 34).overlay(Image(systemName: "dot.radiowaves.left.and.right").font(.caption.bold()).foregroundStyle(connectionColor))
+                Circle().fill(connectionColor.opacity(0.12)).frame(width: 42, height: 42).overlay(Image(systemName: "dot.radiowaves.left.and.right").font(.system(size: 17, weight: .bold)).foregroundStyle(connectionColor))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("OBDLink CX").font(.headline)
-                    Text(demoMode ? "Demo Mode — sample data" : obd.message).font(.caption).foregroundStyle(SDTheme.muted).lineLimit(2)
+                    Text("OBDLink CX").font(.system(size: 18, weight: .semibold))
+                    Text(demoMode ? "Demo Mode — sample data" : obd.message).font(.system(size: 13)).foregroundStyle(SDTheme.muted).lineLimit(2)
                 }
                 Spacer()
                 if busy { ProgressView().tint(SDTheme.green) } else { StatusBadge(text: connectionLabel, color: connectionColor) }
@@ -46,8 +46,8 @@ struct LandingView: View {
                 Divider().overlay(SDTheme.border)
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("2015 Hyundai Sonata").font(.subheadline.weight(.semibold))
-                        Text("VIN · \(snapshot.vin)").font(.caption2.monospaced()).foregroundStyle(SDTheme.muted)
+                        Text("2015 Hyundai Sonata").font(.system(size: 16, weight: .semibold))
+                        Text("VIN · \(snapshot.vin)").font(.system(size: 12, design: .monospaced)).foregroundStyle(SDTheme.muted)
                     }
                     Spacer()
                 }
@@ -61,7 +61,7 @@ struct LandingView: View {
                 demoMode.toggle()
                 if demoMode { obd.disconnect() }
             } label: {
-                Label(demoMode ? "Exit Demo Mode" : "Demo Mode", systemImage: "play.circle").font(.caption.weight(.semibold)).foregroundStyle(demoMode ? SDTheme.amber : SDTheme.muted)
+                Label(demoMode ? "Exit Demo Mode" : "Demo Mode", systemImage: "play.circle").font(.system(size: 14, weight: .semibold)).foregroundStyle(demoMode ? SDTheme.amber : SDTheme.muted)
             }
             .buttonStyle(.plain)
         }
@@ -71,7 +71,7 @@ struct LandingView: View {
     private var overview: some View {
         VStack(spacing: 13) {
             HStack { SectionLabel(text: "Overview"); if demoMode { StatusBadge(text: "DEMO", color: SDTheme.amber) } }
-            VehicleRenderView(angle: .hero).frame(height: 116)
+            VehicleRenderView(angle: .hero).frame(height: 155)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
                 SystemHealthCard(name: "Engine", detail: snapshot.dtcs.isEmpty ? "No active codes" : "\(snapshot.dtcs.count) issue detected", state: .detected, warning: !snapshot.dtcs.isEmpty)
                 SystemHealthCard(name: "Emissions", detail: snapshot.dtcs.isEmpty ? "Standard OBD ready" : "Review engine DTC", state: .detected, warning: !snapshot.dtcs.isEmpty)

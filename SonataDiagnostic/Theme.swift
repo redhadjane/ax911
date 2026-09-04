@@ -17,8 +17,8 @@ struct ScreenHeader: View {
     var subtitle: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(title).font(.title3.weight(.semibold)).foregroundStyle(.white)
-            if let subtitle { Text(subtitle).font(.subheadline).foregroundStyle(SDTheme.muted) }
+            Text(title).font(.system(size: 27, weight: .semibold, design: .rounded)).foregroundStyle(.white)
+            if let subtitle { Text(subtitle).font(.system(size: 15, weight: .regular)).foregroundStyle(SDTheme.muted) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -27,7 +27,7 @@ struct ScreenHeader: View {
 struct SectionLabel: View {
     let text: String
     var body: some View {
-        Text(text.uppercased()).font(.caption2.weight(.bold)).tracking(1.4).foregroundStyle(SDTheme.muted).frame(maxWidth: .infinity, alignment: .leading)
+        Text(text.uppercased()).font(.system(size: 12, weight: .bold)).tracking(1.5).foregroundStyle(SDTheme.muted).frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -35,7 +35,7 @@ struct StatusBadge: View {
     let text: String
     let color: Color
     var body: some View {
-        Text(text).font(.caption2.weight(.semibold)).foregroundStyle(color).padding(.horizontal, 8).padding(.vertical, 5).background(color.opacity(0.11), in: Capsule()).overlay(Capsule().stroke(color.opacity(0.25), lineWidth: 0.7))
+        Text(text).font(.system(size: 11, weight: .semibold)).foregroundStyle(color).padding(.horizontal, 10).padding(.vertical, 6).background(color.opacity(0.11), in: Capsule()).overlay(Capsule().stroke(color.opacity(0.25), lineWidth: 0.7))
     }
 }
 
@@ -47,12 +47,12 @@ private struct PremiumCardModifier: ViewModifier {
 }
 
 extension View {
-    func premiumCard(padding: CGFloat = 14) -> some View { modifier(PremiumCardModifier(padding: padding)) }
+    func premiumCard(padding: CGFloat = 16) -> some View { modifier(PremiumCardModifier(padding: padding)) }
 }
 
 struct WhiteButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.headline).foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 13).background(Color.white.opacity(configuration.isPressed ? 0.78 : 1), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        configuration.label.font(.system(size: 17, weight: .semibold)).foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 16).background(Color.white.opacity(configuration.isPressed ? 0.78 : 1), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
     }
 }
 

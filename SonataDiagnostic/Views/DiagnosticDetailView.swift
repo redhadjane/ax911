@@ -23,7 +23,7 @@ struct DiagnosticDetailView: View {
                     Button("Clear Code") { }.font(.subheadline.weight(.semibold)).foregroundStyle(SDTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 12).background(SDTheme.panel, in: RoundedRectangle(cornerRadius: 13)).disabled(true)
                     Button(saved ? "Report Saved" : "Save Report") { reports.save(snapshot: snapshot, demo: demoMode); saved = true }.buttonStyle(WhiteButtonStyle())
                 }
-            }.padding(16)
+            }.padding(18)
         }
         .background(SDTheme.background).navigationTitle("Diagnostic Detail").navigationBarTitleDisplayMode(.inline)
     }
@@ -32,7 +32,7 @@ struct DiagnosticDetailView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 7) {
                 ForEach(levels, id: \.self) { item in
-                    Button(item) { level = item }.font(.caption.weight(.semibold)).foregroundStyle(level == item ? .black : SDTheme.muted).padding(.horizontal, 12).padding(.vertical, 8).background(level == item ? Color.white : SDTheme.panel, in: Capsule())
+                    Button(item) { level = item }.font(.system(size: 13, weight: .semibold)).foregroundStyle(level == item ? .black : SDTheme.muted).padding(.horizontal, 14).padding(.vertical, 10).background(level == item ? Color.white : SDTheme.panel, in: Capsule())
                 }
             }
         }

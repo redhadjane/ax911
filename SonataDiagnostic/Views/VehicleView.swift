@@ -12,14 +12,14 @@ struct VehicleView: View {
                 HStack { ScreenHeader(title: "Vehicle", subtitle: "Module response is truth — not the trim badge"); if demoMode { StatusBadge(text: "DEMO", color: SDTheme.amber) } }
                 vehicleMap
                 capabilityProfile
-            }.padding(16)
+            }.padding(18)
         }
         .background(SDTheme.background).navigationBarHidden(true)
     }
 
     private var vehicleMap: some View {
         ZStack {
-            VehicleRenderView(angle: .top).frame(height: 355)
+            VehicleRenderView(angle: .top).frame(height: 420)
             VStack {
                 HStack {
                     VehicleStatusTile(title: "Battery", value: formatReading(snapshot.voltage, suffix: " V", digits: 1), icon: "bolt.fill", state: snapshot.voltage == nil ? .unavailable : .detected)
@@ -32,7 +32,7 @@ struct VehicleView: View {
                     Spacer()
                     VehicleStatusTile(title: "Fuel", value: formatReading(snapshot.fuelPct, suffix: "%"), icon: "fuelpump.fill", state: snapshot.fuelPct == nil ? .unavailable : .detected)
                 }
-            }.frame(height: 325)
+            }.frame(height: 385)
         }
         .frame(maxWidth: .infinity).padding(12).background(SDTheme.panel, in: RoundedRectangle(cornerRadius: 22, style: .continuous)).overlay(RoundedRectangle(cornerRadius: 22).stroke(SDTheme.border, lineWidth: 0.7))
     }
@@ -58,9 +58,9 @@ private struct VehicleStatusTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Image(systemName: icon).foregroundStyle(color)
-            Text(title).font(.caption2).foregroundStyle(SDTheme.muted)
-            Text(value).font(.caption.weight(.semibold)).foregroundStyle(color).lineLimit(1).minimumScaleFactor(0.65)
-        }.frame(width: 92, alignment: .leading).padding(9).background(Color.black.opacity(0.58), in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).stroke(SDTheme.border, lineWidth: 0.7))
+            Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(SDTheme.muted)
+            Text(value).font(.system(size: 14, weight: .semibold)).foregroundStyle(color).lineLimit(2).minimumScaleFactor(0.85)
+        }.frame(width: 108, minHeight: 76, alignment: .leading).padding(11).background(Color.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(SDTheme.border, lineWidth: 0.7))
     }
 }
 
@@ -69,10 +69,10 @@ private struct CapabilityRow: View {
     let state: CapabilityState
     var body: some View {
         HStack(spacing: 11) {
-            Circle().stroke(state.color, lineWidth: 1.5).frame(width: 16, height: 16).overlay(Circle().fill(state == .detected ? state.color : .clear).frame(width: 7, height: 7))
-            VStack(alignment: .leading, spacing: 2) { Text(title).font(.subheadline.weight(.medium)); Text(detail).font(.caption).foregroundStyle(SDTheme.muted) }
+            Circle().stroke(state.color, lineWidth: 1.5).frame(width: 20, height: 20).overlay(Circle().fill(state == .detected ? state.color : .clear).frame(width: 9, height: 9))
+            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 16, weight: .medium)); Text(detail).font(.system(size: 13)).foregroundStyle(SDTheme.muted) }
             Spacer()
             StatusBadge(text: state.rawValue, color: state.color)
-        }.padding(.horizontal, 14).padding(.vertical, 11).overlay(alignment: .bottom) { Rectangle().fill(SDTheme.border).frame(height: 0.6) }
+        }.padding(.horizontal, 16).padding(.vertical, 14).overlay(alignment: .bottom) { Rectangle().fill(SDTheme.border).frame(height: 0.6) }
     }
 }

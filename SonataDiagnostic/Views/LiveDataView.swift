@@ -22,7 +22,7 @@ struct LiveDataView: View {
                 }
                 Text(demoMode ? "Sample traces are labeled Demo Mode." : "Values are shown only when returned by the connected vehicle. Historical traces require a live streaming session and are never synthesized.").font(.caption).foregroundStyle(SDTheme.muted).frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(16)
+            .padding(18)
         }
         .background(SDTheme.background).navigationBarHidden(true)
     }
@@ -30,7 +30,7 @@ struct LiveDataView: View {
     private var categoryBar: some View {
         HStack(spacing: 4) {
             ForEach(categories, id: \.self) { item in
-                Button(item) { category = item }.font(.caption.weight(.semibold)).foregroundStyle(category == item ? .black : SDTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 8).background(category == item ? Color.white : Color.clear, in: Capsule())
+                Button(item) { category = item }.font(.system(size: 13, weight: .semibold)).foregroundStyle(category == item ? .black : SDTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 10).background(category == item ? Color.white : Color.clear, in: Capsule())
             }
         }.padding(4).background(SDTheme.panel, in: Capsule()).overlay(Capsule().stroke(SDTheme.border, lineWidth: 0.7))
     }
@@ -70,9 +70,9 @@ private struct LiveReadingRow: View {
     let demoMode: Bool
     var body: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) { Text(row.title).font(.subheadline.weight(.medium)); Text(row.value).font(.headline.monospacedDigit()).foregroundStyle(.white) }
+            VStack(alignment: .leading, spacing: 5) { Text(row.title).font(.system(size: 16, weight: .medium)); Text(row.value).font(.system(size: 19, weight: .semibold, design: .monospaced)).foregroundStyle(.white) }
             Spacer()
-            LiveGraph(values: demoMode ? row.demoValues : nil, color: row.color).frame(width: 105, height: 36)
-        }.padding(.horizontal, 14).padding(.vertical, 12)
+            LiveGraph(values: demoMode ? row.demoValues : nil, color: row.color).frame(width: 120, height: 42)
+        }.padding(.horizontal, 16).padding(.vertical, 15)
     }
 }

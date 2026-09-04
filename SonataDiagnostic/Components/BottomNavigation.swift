@@ -6,16 +6,16 @@ struct BottomNavigation: View {
         HStack(spacing: 0) {
             ForEach(AppTab.allCases) { tab in
                 Button { selection = tab } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon).font(.system(size: 17, weight: .semibold))
-                        Text(tab.rawValue).font(.system(size: 9.5, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
+                    VStack(spacing: 5) {
+                        Image(systemName: tab.icon).font(.system(size: 21, weight: .semibold))
+                        Text(tab.rawValue).font(.system(size: 11, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.9)
                     }
                     .foregroundStyle(selection == tab ? SDTheme.green : SDTheme.muted)
-                    .frame(maxWidth: .infinity).frame(height: 54).contentShape(Rectangle())
+                    .frame(maxWidth: .infinity).frame(height: 66).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).accessibilityLabel(tab.rawValue).accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }
-        .padding(.horizontal, 6).padding(.top, 4).background(.ultraThinMaterial).background(Color.black.opacity(0.82)).overlay(alignment: .top) { Rectangle().fill(SDTheme.border).frame(height: 0.7) }
+        .padding(.horizontal, 8).padding(.top, 5).background(.ultraThinMaterial).background(Color.black.opacity(0.88)).overlay(alignment: .top) { Rectangle().fill(SDTheme.border).frame(height: 0.7) }
     }
 }

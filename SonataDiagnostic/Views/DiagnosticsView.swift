@@ -19,7 +19,7 @@ struct DiagnosticsView: View {
                         }
                     }
                 } else { unavailableFilter }
-            }.padding(16)
+            }.padding(18)
         }
         .background(SDTheme.background).navigationBarHidden(true)
         .navigationDestination(for: DiagnosticRecord.self) { record in DiagnosticDetailView(record: record, snapshot: snapshot, demoMode: demoMode) }
@@ -47,8 +47,8 @@ private struct DiagnosticSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 11) {
             HStack { StatusBadge(text: "ACTIVE", color: record.severity.color); Spacer(); Text(record.code).font(.subheadline.monospaced().weight(.semibold)).foregroundStyle(SDTheme.muted) }
-            Text(record.headline).font(.title3.weight(.semibold)).multilineTextAlignment(.leading)
-            Text(record.definition).font(.subheadline).foregroundStyle(SDTheme.muted).multilineTextAlignment(.leading)
+            Text(record.headline).font(.system(size: 22, weight: .semibold, design: .rounded)).multilineTextAlignment(.leading)
+            Text(record.definition).font(.system(size: 15)).foregroundStyle(SDTheme.muted).multilineTextAlignment(.leading)
             HStack { Circle().fill(record.severity.color).frame(width: 6, height: 6); Text("Severity: \(record.severity.rawValue)").font(.caption).foregroundStyle(record.severity.color); Spacer(); Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(SDTheme.muted) }
         }.premiumCard()
     }

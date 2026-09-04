@@ -24,12 +24,12 @@ struct ReportsView: View {
                         }.premiumCard()
                     }
                 }
-            }.padding(16)
+            }.padding(18)
         }
         .background(SDTheme.background).navigationTitle("Reports").navigationBarTitleDisplayMode(.inline)
     }
     private func reportLine(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .top) { Text(label).font(.caption).foregroundStyle(SDTheme.muted).frame(width: 82, alignment: .leading); Text(value).font(.caption).frame(maxWidth: .infinity, alignment: .leading) }
+        HStack(alignment: .top) { Text(label).font(.system(size: 13)).foregroundStyle(SDTheme.muted).frame(width: 92, alignment: .leading); Text(value).font(.system(size: 13)).frame(maxWidth: .infinity, alignment: .leading) }
     }
 }
 

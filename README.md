@@ -41,3 +41,4 @@ Version 0.2 is read-only. It does not transmit Hyundai module configuration writ
 - Dynamic Real Mode screens that render only returned OBD values and never substitute demo data
 - Three-level fault detail: Explain to Me, Readings, and Mechanic Details
 - Context-aware expected ranges, explicit unavailable states, saved local reports, and locked Hyundai settings
+- v0.2.1 increases type, touch targets, cards, navigation, and vehicle artwork for the 390-point iPhone 13 baseline and larger iPhones

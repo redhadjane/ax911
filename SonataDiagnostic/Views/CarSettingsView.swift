@@ -13,7 +13,7 @@ struct CarSettingsView: View {
                 settingsGroup("Convenience", items: [("Smart Trunk", "Hands-free opening"), ("Smart Key Beep", "Key confirmation")])
                 NavigationLink { ReportsView() } label: { MenuRow(icon: "doc.text.fill", title: "Reports", detail: "\(reports.reports.count) saved", color: SDTheme.green) }.buttonStyle(.plain)
                 NavigationLink { AboutView() } label: { MenuRow(icon: "info.circle.fill", title: "About", detail: "Privacy and safety", color: SDTheme.muted) }.buttonStyle(.plain)
-            }.padding(16)
+            }.padding(18)
         }
         .background(SDTheme.background).navigationBarHidden(true)
     }
@@ -45,11 +45,11 @@ private struct SettingRow: View {
     let title: String, detail: String
     var body: some View {
         HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) { Text(title).font(.subheadline.weight(.medium)); Text(detail).font(.caption).foregroundStyle(SDTheme.muted) }
+            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 16, weight: .medium)); Text(detail).font(.system(size: 13)).foregroundStyle(SDTheme.muted) }
             Spacer()
             StatusBadge(text: "RESEARCH", color: SDTheme.amber)
             Toggle("", isOn: .constant(false)).labelsHidden().disabled(true).scaleEffect(0.78)
-        }.padding(.horizontal, 14).padding(.vertical, 11)
+        }.padding(.horizontal, 16).padding(.vertical, 14)
     }
 }
 
@@ -58,8 +58,8 @@ private struct MenuRow: View {
     let color: Color
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon).foregroundStyle(color).frame(width: 22)
-            VStack(alignment: .leading, spacing: 2) { Text(title).font(.subheadline.weight(.semibold)); Text(detail).font(.caption).foregroundStyle(SDTheme.muted) }
+            Image(systemName: icon).font(.system(size: 20, weight: .semibold)).foregroundStyle(color).frame(width: 26)
+            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 17, weight: .semibold)); Text(detail).font(.system(size: 13)).foregroundStyle(SDTheme.muted) }
             Spacer(); Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(SDTheme.muted)
         }.premiumCard()
     }

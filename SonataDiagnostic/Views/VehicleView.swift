@@ -60,7 +60,7 @@ private struct VehicleStatusTile: View {
             Image(systemName: icon).foregroundStyle(color)
             Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(SDTheme.muted)
             Text(value).font(.system(size: 14, weight: .semibold)).foregroundStyle(color).lineLimit(2).minimumScaleFactor(0.85)
-        }.frame(width: 108, minHeight: 76, alignment: .leading).padding(11).background(Color.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(SDTheme.border, lineWidth: 0.7))
+        }.frame(width: 108, alignment: .leading).frame(minHeight: 76, alignment: .leading).padding(11).background(Color.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(SDTheme.border, lineWidth: 0.7))
     }
 }
 

@@ -117,6 +117,8 @@ jobs:
             xcrun simctl terminate "$DEVICE_ID" com.redhadjane.sonatadiagnostic >/dev/null 2>&1 || true
             xcrun simctl launch "$DEVICE_ID" com.redhadjane.sonatadiagnostic "$@"
             sleep 6
+            xcrun simctl io "$DEVICE_ID" screenshot "visual-qa/.warmup.png"
+            sleep 2
             xcrun simctl io "$DEVICE_ID" screenshot "visual-qa/$NAME.png"
             SIZE=$(stat -f%z "visual-qa/$NAME.png")
             if [ "$SIZE" -lt 150000 ]; then

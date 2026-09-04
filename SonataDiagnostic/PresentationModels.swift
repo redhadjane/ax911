@@ -3,6 +3,7 @@ import SwiftUI
 
 enum AppRoute: String, CaseIterable, Identifiable {
     case overview = "Overview"
+    case intelligence = "Intelligence"
     case live = "Live Data"
     case diagnostics = "Diagnostics"
     case vehicle = "3D Vehicle"
@@ -17,6 +18,7 @@ enum AppRoute: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .overview: return "house"
+        case .intelligence: return "sparkles"
         case .live: return "chart.bar.xaxis"
         case .diagnostics: return "car.rear.waves.up"
         case .vehicle: return "car.top"
@@ -30,7 +32,7 @@ enum AppRoute: String, CaseIterable, Identifiable {
     }
 
     static let bottomRoutes: [AppRoute] = [.overview, .live, .diagnostics, .settings]
-    static let menuRoutes: [AppRoute] = [.overview, .live, .diagnostics, .vehicle, .settings, .reports, .maintenance, .logging, .profile, .about]
+    static let menuRoutes: [AppRoute] = [.overview, .intelligence, .live, .diagnostics, .vehicle, .settings, .reports, .maintenance, .logging, .profile, .about]
 
     var menuTitle: String { self == .settings ? "Car Settings" : rawValue }
 }

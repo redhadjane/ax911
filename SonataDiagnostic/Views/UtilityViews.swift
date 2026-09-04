@@ -13,8 +13,8 @@ struct MaintenanceView: View {
                 MaintenanceCard(icon: "wind", title: "Cabin air filter", detail: demoMode ? "Inspect at next service" : "No service history yet", accent: SDTheme.muted)
                 Text(demoMode ? "Demo intervals are illustrative and are not service recommendations." : "No maintenance values are inferred from OBD data. Add records only when you have the actual service information.")
                     .font(.caption).foregroundStyle(SDTheme.muted).padding(.top, 4)
-            }.padding(18).padding(.bottom, 18)
-        }.background(SDTheme.background)
+            }.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 18)
+        }.background(Color.clear)
     }
 }
 
@@ -55,8 +55,8 @@ struct DataLoggingView: View {
                 }.premiumCard()
                 SectionLabel(text: "Saved drives")
                 Text("No recordings yet").font(.system(size: 15, weight: .medium)).foregroundStyle(SDTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 34).premiumCard()
-            }.padding(18).padding(.bottom, 18)
-        }.background(SDTheme.background)
+            }.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 18)
+        }.background(Color.clear)
     }
 }
 
@@ -81,8 +81,8 @@ struct VehicleProfileView: View {
                 }.premiumCard(padding: 0)
                 Text("Unsupported modules stay unavailable. Sonata Diagnostic does not guess capabilities or send experimental write commands.")
                     .font(.caption).foregroundStyle(SDTheme.muted)
-            }.padding(18).padding(.bottom, 18)
-        }.background(SDTheme.background)
+            }.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 18)
+        }.background(Color.clear)
     }
 }
 

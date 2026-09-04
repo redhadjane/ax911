@@ -9,9 +9,12 @@ struct DiagnosticsView: View {
     private var snapshot: VehicleSnapshot { demoMode ? DemoVehicle.snapshot(for: scenario) : obd.snapshot }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                ScreenHeader(title: "Diagnostics", subtitle: "Normal language first, then measured values and mechanic-ready details.")
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 13) {
+                HStack(alignment: .top) {
+                    ScreenHeader(title: "Diagnostics", subtitle: "Plain language first. Evidence and mechanic detail when you need it.")
+                    HStack(spacing: 4) { Image(systemName: "sparkles"); Text("EXPLAINED") }.font(.system(size: 9, weight: .bold)).foregroundStyle(SDTheme.cyan)
+                }
                 Picker("Diagnostic status", selection: $filter) { ForEach(filters, id: \.self) { Text($0).tag($0) } }.pickerStyle(.segmented)
                 if filter == "Active" {
                     if snapshot.dtcs.isEmpty { emptyActive } else {
@@ -20,10 +23,10 @@ struct DiagnosticsView: View {
                         }
                     }
                 } else { unavailableFilter }
-            }.padding(18)
+            }.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(SDTheme.background.ignoresSafeArea()).navigationBarHidden(true)
+        .background(Color.clear)
     }
 
     private var emptyActive: some View {
@@ -31,7 +34,7 @@ struct DiagnosticsView: View {
             Image(systemName: snapshot.hasAnyReading ? "checkmark.shield.fill" : "stethoscope").font(.largeTitle).foregroundStyle(snapshot.hasAnyReading ? SDTheme.green : SDTheme.muted)
             Text(snapshot.hasAnyReading ? "No active engine codes" : "Vehicle not scanned").font(.headline)
             Text(snapshot.hasAnyReading ? "The standard engine computer did not return an active DTC." : "Connect from Home to read actual vehicle data.").font(.subheadline).foregroundStyle(SDTheme.muted).multilineTextAlignment(.center)
-        }.frame(maxWidth: .infinity).padding(.vertical, 38).premiumCard()
+        }.frame(maxWidth: .infinity).padding(.vertical, 34).premiumCard(radius: 19)
     }
 
     private var unavailableFilter: some View {
@@ -39,7 +42,7 @@ struct DiagnosticsView: View {
             Image(systemName: "clock.badge.questionmark").font(.largeTitle).foregroundStyle(SDTheme.muted)
             Text("\(filter) codes are not available").font(.headline)
             Text("The current read-only scan retrieves active Mode 03 engine DTCs. The app will not label active data as pending or history.").font(.subheadline).foregroundStyle(SDTheme.muted).multilineTextAlignment(.center)
-        }.frame(maxWidth: .infinity).padding(.vertical, 38).premiumCard()
+        }.frame(maxWidth: .infinity).padding(.vertical, 34).premiumCard(radius: 19)
     }
 }
 
@@ -54,19 +57,19 @@ private struct DiagnosticReferenceCard: View {
     private let sections = ["Explain", "Actual vs Normal", "Mechanic"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(record.code).font(.system(size: 32, weight: .bold, design: .rounded))
-                    Text(record.headline).font(.system(size: 21, weight: .bold)).fixedSize(horizontal: false, vertical: true)
-                    Text(record.definition).font(.system(size: 13)).foregroundStyle(SDTheme.muted)
+                    Text(record.code).font(.system(size: 29, weight: .bold, design: .rounded))
+                    Text(record.headline).font(.system(size: 18, weight: .bold)).fixedSize(horizontal: false, vertical: true)
+                    Text(record.definition).font(.system(size: 11.5)).foregroundStyle(SDTheme.muted)
                 }
                 Spacer(minLength: 8)
                 StatusBadge(text: "Active", color: record.severity.color)
             }
             HStack(spacing: 7) {
                 Circle().fill(record.severity.color).frame(width: 8, height: 8)
-                Text("Severity: \(record.severity.rawValue)").font(.system(size: 13, weight: .medium)).foregroundStyle(record.severity.color)
+                Text("Severity: \(record.severity.rawValue)").font(.system(size: 11.5, weight: .semibold)).foregroundStyle(record.severity.color)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -84,7 +87,7 @@ private struct DiagnosticReferenceCard: View {
 
             if section == "Explain" {
                 Text("What it means").font(.headline)
-                Text(record.explanation).font(.system(size: 14)).foregroundStyle(SDTheme.muted).lineSpacing(4)
+                Text(record.explanation).font(.system(size: 13)).foregroundStyle(SDTheme.muted).lineSpacing(3)
                 DiagnosticCallout(title: "What you might notice", text: record.symptoms.joined(separator: ", ") + ".")
                 DiagnosticBulletList(title: "Possible causes", items: record.causes)
             } else if section == "Actual vs Normal" {
@@ -94,7 +97,7 @@ private struct DiagnosticReferenceCard: View {
                 DiagnosticValueLine(label: "Engine load", value: formatReading(snapshot.loadPct, suffix: "%", digits: 0), note: "Condition-dependent")
             } else {
                 Text("Mechanic-ready details").font(.headline)
-                Text(record.inspection).font(.system(size: 14)).foregroundStyle(SDTheme.muted).lineSpacing(4)
+                Text(record.inspection).font(.system(size: 13)).foregroundStyle(SDTheme.muted).lineSpacing(3)
                 DiagnosticValueLine(label: "Source module", value: "Engine / ECM", note: "Standard OBD-II Mode 03")
                 DiagnosticValueLine(label: "VIN", value: snapshot.vin.isEmpty ? "Not available" : snapshot.vin, note: "Read from connected vehicle")
             }
@@ -106,7 +109,7 @@ private struct DiagnosticReferenceCard: View {
                 Button("Clear") { }.font(.system(size: 14, weight: .semibold)).foregroundStyle(SDTheme.muted)
                     .padding(.horizontal, 20).frame(height: 50).background(SDTheme.panelRaised, in: RoundedRectangle(cornerRadius: 14)).disabled(true)
             }
-        }.premiumCard(padding: 17)
+        }.premiumCard(padding: 16, radius: 19)
     }
 }
 

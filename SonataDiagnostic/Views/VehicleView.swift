@@ -4,25 +4,40 @@ struct VehicleView: View {
     @EnvironmentObject private var obd: OBDLinkCXManager
     let demoMode: Bool
     let scenario: DemoScenario
+    @State private var tiltX: Double = 0
+    @State private var tiltY: Double = 0
     private var snapshot: VehicleSnapshot { demoMode ? DemoVehicle.snapshot(for: scenario) : obd.snapshot }
     private var scanned: Bool { demoMode || snapshot.hasAnyReading }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                ScreenHeader(title: "3D Vehicle", subtitle: "A visual layer driven by signals the car actually reports.")
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 13) {
+                HStack(alignment: .top) {
+                    ScreenHeader(title: "Vehicle intelligence", subtitle: "Touch the vehicle to explore its live signal map.")
+                    StatusBadge(text: "INTERACTIVE", color: SDTheme.cyan)
+                }
                 vehicleMap
+                SectionLabel(text: "Detected capabilities")
                 capabilityProfile
-            }.padding(18)
+            }.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(SDTheme.background.ignoresSafeArea()).navigationBarHidden(true)
+        .background(Color.clear)
     }
 
     private var vehicleMap: some View {
         ZStack {
             VehicleGrid().opacity(0.7)
-            VehicleRenderView(angle: .top).frame(width: 170, height: 420)
+            Ellipse().fill(SDTheme.green.opacity(0.08)).frame(width: 180, height: 320).blur(radius: 28)
+            VehicleRenderView(angle: .top)
+                .frame(width: 145, height: 350)
+                .rotation3DEffect(.degrees(tiltX), axis: (x: 1, y: 0, z: 0), perspective: 0.75)
+                .rotation3DEffect(.degrees(tiltY), axis: (x: 0, y: 1, z: 0), perspective: 0.75)
+                .shadow(color: .black.opacity(0.7), radius: 18, y: 16)
+                .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                    tiltY = min(12, max(-12, Double(value.translation.width / 12)))
+                    tiltX = min(9, max(-9, Double(-value.translation.height / 15)))
+                }.onEnded { _ in withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) { tiltX = 0; tiltY = 0 } })
             VStack(spacing: 0) {
                 HStack {
                     VehicleStatusTile(title: "Battery", value: formatReading(snapshot.voltage, suffix: " V", digits: 1), icon: "bolt.fill", state: snapshot.voltage == nil ? .unavailable : .detected)
@@ -48,9 +63,12 @@ struct VehicleView: View {
                 }
                 .font(.system(size: 11)).padding(.horizontal, 14).padding(.vertical, 9)
                 .background(SDTheme.panel, in: Capsule()).overlay(Capsule().stroke(SDTheme.border, lineWidth: 0.7))
-            }.frame(height: 500)
+                Text("DRAG TO TILT").font(.system(size: 8.5, weight: .bold)).tracking(1.3).foregroundStyle(SDTheme.tertiary).padding(.top, 7)
+            }.frame(height: 438)
         }
-        .frame(maxWidth: .infinity).frame(height: 530).padding(12).background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 22, style: .continuous)).overlay(RoundedRectangle(cornerRadius: 22).stroke(SDTheme.border, lineWidth: 0.7))
+        .frame(maxWidth: .infinity).frame(height: 464).padding(10)
+        .background(Color.black.opacity(0.16), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(SDTheme.border, lineWidth: 0.7))
     }
 
     private var capabilityProfile: some View {
@@ -62,7 +80,7 @@ struct VehicleView: View {
             CapabilityRow(title: "Smart Key", detail: "Writes safety-locked", state: .research)
             CapabilityRow(title: "ABS / ESC", detail: "No experimental probing", state: .readOnly)
             CapabilityRow(title: "SRS / Airbag", detail: "Protected system", state: .readOnly)
-        }.premiumCard(padding: 0)
+        }.premiumCard(padding: 0, radius: 19)
     }
 }
 
@@ -89,11 +107,11 @@ private struct VehicleStatusTile: View {
     var warning = false
     private var color: Color { warning ? SDTheme.amber : state.color }
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: icon).foregroundStyle(color)
-            Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(SDTheme.muted)
-            Text(value).font(.system(size: 14, weight: .semibold)).foregroundStyle(color).lineLimit(2).minimumScaleFactor(0.85)
-        }.frame(width: 108, alignment: .leading).frame(minHeight: 76, alignment: .leading).padding(11).background(Color.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(SDTheme.border, lineWidth: 0.7))
+        VStack(alignment: .leading, spacing: 3) {
+            Image(systemName: icon).font(.system(size: 12, weight: .semibold)).foregroundStyle(color)
+            Text(title).font(.system(size: 10, weight: .medium)).foregroundStyle(SDTheme.muted).lineLimit(1).minimumScaleFactor(0.8)
+            Text(value).font(.system(size: 12.5, weight: .bold)).foregroundStyle(color).lineLimit(1).minimumScaleFactor(0.75)
+        }.frame(width: 95, alignment: .leading).frame(minHeight: 57, alignment: .leading).padding(9).background(Color.black.opacity(0.66), in: RoundedRectangle(cornerRadius: 13)).overlay(RoundedRectangle(cornerRadius: 13).stroke(SDTheme.border, lineWidth: 0.7))
     }
 }
 
@@ -103,9 +121,9 @@ private struct CapabilityRow: View {
     var body: some View {
         HStack(spacing: 11) {
             Circle().stroke(state.color, lineWidth: 1.5).frame(width: 20, height: 20).overlay(Circle().fill(state == .detected ? state.color : .clear).frame(width: 9, height: 9))
-            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 16, weight: .medium)); Text(detail).font(.system(size: 13)).foregroundStyle(SDTheme.muted) }
+            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 14, weight: .semibold)); Text(detail).font(.system(size: 11.5)).foregroundStyle(SDTheme.muted).lineLimit(1).minimumScaleFactor(0.8) }
             Spacer()
             StatusBadge(text: state.rawValue, color: state.color)
-        }.padding(.horizontal, 16).padding(.vertical, 14).overlay(alignment: .bottom) { Rectangle().fill(SDTheme.border).frame(height: 0.6) }
+        }.padding(.horizontal, 15).padding(.vertical, 12).overlay(alignment: .bottom) { Rectangle().fill(SDTheme.border).frame(height: 0.6) }
     }
 }

@@ -17,6 +17,15 @@ targets:
       - SonataDiagnostic
     info:
       path: SonataDiagnostic/Info.plist
+      properties:
+        CFBundleDisplayName: Sonata Diagnostic
+        UILaunchStoryboardName: LaunchScreen
+        UIRequiresFullScreen: true
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSBluetoothAlwaysUsageDescription: Sonata Diagnostic uses Bluetooth to connect to your OBDLink CX adapter and read vehicle diagnostic data.
+        NSBluetoothPeripheralUsageDescription: Sonata Diagnostic uses Bluetooth to connect to your OBDLink CX adapter.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.redhadjane.sonatadiagnostic

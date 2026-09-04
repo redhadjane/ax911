@@ -36,6 +36,15 @@ jobs:
             CODE_SIGN_IDENTITY='' \
             clean build | tee xcodebuild.log
 
+      - name: Verify modern iPhone metadata
+        run: |
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :UILaunchStoryboardName' "$APP/Info.plist")" = "LaunchScreen"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :UIRequiresFullScreen' "$APP/Info.plist")" = "true"
+          /usr/libexec/PlistBuddy -c 'Print :NSBluetoothAlwaysUsageDescription' "$APP/Info.plist" | grep -q 'OBDLink CX'
+          /usr/libexec/PlistBuddy -c 'Print :UISupportedInterfaceOrientations:0' "$APP/Info.plist" | grep -q 'UIInterfaceOrientationPortrait'
+
       - name: Package unsigned IPA
         run: |
           APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' -print -quit)

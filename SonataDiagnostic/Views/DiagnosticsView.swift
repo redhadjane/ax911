@@ -21,7 +21,8 @@ struct DiagnosticsView: View {
                 } else { unavailableFilter }
             }.padding(18)
         }
-        .background(SDTheme.background).navigationBarHidden(true)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(SDTheme.background.ignoresSafeArea()).navigationBarHidden(true)
         .navigationDestination(for: DiagnosticRecord.self) { record in DiagnosticDetailView(record: record, snapshot: snapshot, demoMode: demoMode) }
     }
 

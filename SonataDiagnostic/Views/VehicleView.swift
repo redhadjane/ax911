@@ -14,7 +14,8 @@ struct VehicleView: View {
                 capabilityProfile
             }.padding(18)
         }
-        .background(SDTheme.background).navigationBarHidden(true)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(SDTheme.background.ignoresSafeArea()).navigationBarHidden(true)
     }
 
     private var vehicleMap: some View {

@@ -42,3 +42,4 @@ Version 0.2 is read-only. It does not transmit Hyundai module configuration writ
 - Three-level fault detail: Explain to Me, Readings, and Mechanic Details
 - Context-aware expected ranges, explicit unavailable states, saved local reports, and locked Hyundai settings
 - v0.2.1 increases type, touch targets, cards, navigation, and vehicle artwork for the 390-point iPhone 13 baseline and larger iPhones
+- v0.2.2 adds a real launch storyboard and full-window root sizing to prevent legacy letterboxing on modern iPhones

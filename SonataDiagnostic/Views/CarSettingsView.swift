@@ -15,7 +15,8 @@ struct CarSettingsView: View {
                 NavigationLink { AboutView() } label: { MenuRow(icon: "info.circle.fill", title: "About", detail: "Privacy and safety", color: SDTheme.muted) }.buttonStyle(.plain)
             }.padding(18)
         }
-        .background(SDTheme.background).navigationBarHidden(true)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(SDTheme.background.ignoresSafeArea()).navigationBarHidden(true)
     }
 
     private var safetyCard: some View {

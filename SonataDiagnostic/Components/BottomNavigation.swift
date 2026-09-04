@@ -16,6 +16,7 @@ struct BottomNavigation: View {
                 .buttonStyle(.plain).accessibilityLabel(tab.rawValue).accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 8).padding(.top, 5).background(.ultraThinMaterial).background(Color.black.opacity(0.88)).overlay(alignment: .top) { Rectangle().fill(SDTheme.border).frame(height: 0.7) }
     }
 }

@@ -16,7 +16,9 @@ struct ContentView: View {
             case .vehicle: NavigationStack { VehicleView(demoMode: demoMode) }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .safeAreaInset(edge: .bottom, spacing: 0) { BottomNavigation(selection: $selection) }
+        .background(SDTheme.background.ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 }

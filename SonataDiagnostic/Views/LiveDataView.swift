@@ -24,7 +24,8 @@ struct LiveDataView: View {
             }
             .padding(18)
         }
-        .background(SDTheme.background).navigationBarHidden(true)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(SDTheme.background.ignoresSafeArea()).navigationBarHidden(true)
     }
 
     private var categoryBar: some View {

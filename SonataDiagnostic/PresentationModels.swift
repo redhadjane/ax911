@@ -6,7 +6,7 @@ enum AppRoute: String, CaseIterable, Identifiable {
     case live = "Live Data"
     case diagnostics = "Diagnostics"
     case vehicle = "3D Vehicle"
-    case settings = "Car Settings"
+    case settings = "Settings"
     case reports = "Reports"
     case maintenance = "Maintenance"
     case logging = "Data Logging"
@@ -31,6 +31,8 @@ enum AppRoute: String, CaseIterable, Identifiable {
 
     static let bottomRoutes: [AppRoute] = [.overview, .live, .diagnostics, .settings]
     static let menuRoutes: [AppRoute] = [.overview, .live, .diagnostics, .vehicle, .settings, .reports, .maintenance, .logging, .profile, .about]
+
+    var menuTitle: String { self == .settings ? "Car Settings" : rawValue }
 }
 
 enum DemoScenario: String, CaseIterable, Identifiable {

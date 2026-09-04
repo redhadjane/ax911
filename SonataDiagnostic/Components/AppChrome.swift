@@ -59,7 +59,7 @@ struct SideMenu: View {
                             } label: {
                                 HStack(spacing: 14) {
                                     Image(systemName: item.icon).font(.system(size: 17, weight: .medium)).foregroundStyle(route == item ? SDTheme.green : SDTheme.muted).frame(width: 25)
-                                    Text(item.rawValue).font(.system(size: 16, weight: .medium))
+                                    Text(item.menuTitle).font(.system(size: 16, weight: .medium))
                                     Spacer()
                                 }
                                 .foregroundStyle(.white).padding(.horizontal, 20).frame(height: 48)

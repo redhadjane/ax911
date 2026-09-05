@@ -21,10 +21,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apple toolchain
         run: xcodebuild -version
-      - name: Portable native security policy tests
+      - name: Native date, finance, schedule and security tests
         run: swift test
-      - name: JavaScript bridge and package contract tests
-        run: node --test scripts/contracts.test.cjs
+      - name: Native source and package contract checks
+        run: node --test scripts/native-contracts.test.cjs
       - name: Compile device app and package unsigned IPA (no simulator)
         run: bash scripts/build-ipa.sh
       - name: Upload iPad IPA

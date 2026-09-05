@@ -89,10 +89,11 @@ struct HOPRoot: View {
         .onChange(of: store.employee?.id) { _, value in if value == nil { feature = nil } }
         .task(id: "\(store.employee?.id ?? "")|\(alerts.destination?.id.uuidString ?? "")") {
             if let destination = alerts.destination, store.employee?.id == destination.employeeID {
-                alerts.destination = nil
                 await store.selectWeek(destination.date)
+                guard store.employee?.id == destination.employeeID else { return }
                 store.focusedShiftID = destination.shiftID
                 store.screen = .schedule
+                alerts.destination = nil
             }
         }
         .overlay(alignment: .top) {

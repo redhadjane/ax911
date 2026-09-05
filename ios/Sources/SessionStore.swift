@@ -237,9 +237,11 @@ enum SessionKeychain {
     var unread: Int { notifications.filter { !$0.isRead }.count }
     func records(_ section: String, _ key: String) -> [HOPRecord] { data[section]?[key].records ?? [] }
     func openNotification(_ record: HOPRecord) async {
+        let version = sessionVersion
         let route = HOPLink.notification(record), payload = record["payload"]
         let date = payload["week_start"].text.isEmpty ? payload["date"].text : payload["week_start"].text
         if [.schedule, .tasks, .parties, .availability].contains(route), HOPCalendar.date(date) != nil { await selectWeek(date) }
+        guard employee != nil, version == sessionVersion else { return }
         if route == .schedule { focusedShiftID = payload["schedule_entry_id"].text.isEmpty ? nil : payload["schedule_entry_id"].text }
         if route == .tasks { taskShiftID = payload["schedule_entry_id"].text.isEmpty ? nil : payload["schedule_entry_id"].text }
         screen = route

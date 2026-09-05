@@ -96,6 +96,7 @@ struct ReminderDestination: Identifiable { let id = UUID(); let employeeID: Stri
     private var epoch = 0
     private override init() { super.init(); center.delegate = self }
     func setEmployee(_ id: String) {
+        if id.isEmpty { account = ""; epoch += 1; destination = nil; UserDefaults.standard.removeObject(forKey: "hopReminderAccount"); clear(); return }
         guard account != id else { return }
         let sameRestoredAccount = account.isEmpty && !id.isEmpty && UserDefaults.standard.string(forKey: "hopReminderAccount") == id
         account = id; epoch += 1
@@ -143,7 +144,7 @@ struct ReminderDestination: Identifiable { let id = UUID(); let employeeID: Stri
             guard [.authorized, .provisional, .ephemeral].contains(permission.authorizationStatus), account == employeeID, epoch == version else { return }
             let lead = prefs.object(forKey: "hopReminderLead") as? Int ?? 60
             let now = Date(), remaining = max(0, 60 - pending.filter { !$0.identifier.hasPrefix(prefix) }.count)
-            var count = 0
+            var count = 0, failure: String?
             for shift in shifts.sorted(by: { ($0.startInstant ?? .distantFuture) < ($1.startInstant ?? .distantFuture) }) {
                 guard count < remaining, account == employeeID, epoch == version else { break }
                 guard let fire = HOPAlertPolicy.reminderDate(shift, employeeID: employeeID, lead: lead, now: now, expires: expires, quietEnabled: prefs.bool(forKey: "hopQuietHours"), quietStart: prefs.object(forKey: "hopQuietStart") as? Int ?? 1320, quietEnd: prefs.object(forKey: "hopQuietEnd") as? Int ?? 420) else { continue }
@@ -154,10 +155,10 @@ struct ReminderDestination: Identifiable { let id = UUID(); let employeeID: Stri
                 var components = Calendar(identifier: .gregorian).dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: fire)
                 components.calendar = Calendar(identifier: .gregorian); components.timeZone = TimeZone(secondsFromGMT: 0)
                 do { try await center.add(UNNotificationRequest(identifier: prefix + shift.id, content: content, trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false))); count += 1 }
-                catch { status = "Could not schedule a reminder: \(error.localizedDescription)" }
+                catch { failure = "Could not schedule a reminder: \(error.localizedDescription)" }
             }
             pendingCount = await center.pendingNotificationRequests().filter { $0.identifier.hasPrefix("hop-shift-") }.count
-            status = "\(pendingCount) reminders scheduled from the latest schedules loaded on this iPhone."
+            status = failure ?? "\(pendingCount) reminders scheduled from the latest schedules loaded on this iPhone."
         }
         await operation?.value
     }
@@ -190,7 +191,7 @@ struct AlertSettingsView: View {
     @AppStorage("hopAlertOther") private var other = true
     var body: some View {
         Form {
-            Section("Delivery status") {
+            Section {
                 LabeledContent("iPhone permission", value: alerts.authorization)
                 LabeledContent("Server background push", value: "Not configured")
                 LabeledContent("Scheduled local reminders", value: String(alerts.pendingCount))
@@ -198,26 +199,26 @@ struct AlertSettingsView: View {
                 Button("Open iPhone notification settings") { if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) } }
                 Button("Test local notification") { Task { await alerts.test() } }
                 Text(alerts.status).font(.footnote).foregroundStyle(.secondary)
-            } footer: { Text("Background server push needs an Apple push-enabled signing profile and HOP server setup. The local test does not verify server delivery.") }
-            Section("Shift reminders on this iPhone") {
+            } header: { Text("Delivery status") } footer: { Text("Background server push needs an Apple push-enabled signing profile and HOP server setup. The local test does not verify server delivery.") }
+            Section {
                 Toggle("Remind me before my shift", isOn: $reminders)
                 Picker("Remind me", selection: $lead) { ForEach([15,30,60,120], id: \.self) { Text("\($0) minutes before").tag($0) } }.disabled(!reminders)
                 Toggle("Play sound", isOn: $sound)
                 Toggle("Show shift details in alerts", isOn: $previews)
-            } footer: { Text("Only your published shifts are eligible. Reminders use Gaffney time and the schedules last loaded here. Open HOP after schedule changes; remote changes cannot update local reminders while HOP is closed. Reminders stop at session expiry.") }
-            Section("While HOP is open") {
+            } header: { Text("Shift reminders on this iPhone") } footer: { Text("Only your published shifts are eligible. Reminders use Gaffney time and the schedules last loaded here. Open HOP after schedule changes; remote changes cannot update local reminders while HOP is closed. Reminders stop at session expiry.") }
+            Section {
                 Toggle("Show new-message banners", isOn: $banners)
                 Toggle("Schedule updates", isOn: $schedule)
                 Toggle("Requests and shift switches", isOn: $requests)
                 Toggle("Tasks", isOn: $tasks)
                 Toggle("Parties", isOn: $parties)
                 Toggle("Announcements and other messages", isOn: $other)
-            } footer: { Text("These filters control in-app banners only. All messages remain in your Inbox.") }
-            Section("Quiet hours · Gaffney time") {
+            } header: { Text("While HOP is open") } footer: { Text("These filters control in-app banners only. All messages remain in your Inbox.") }
+            Section {
                 Toggle("Use quiet hours", isOn: $quiet)
                 Picker("Start", selection: $quietStart) { ForEach(0..<24) { Text(HOPCalendar.clock(String(format: "%02d:00", $0))).tag($0 * 60) } }.disabled(!quiet)
                 Picker("End", selection: $quietEnd) { ForEach(0..<24) { Text(HOPCalendar.clock(String(format: "%02d:00", $0))).tag($0 * 60) } }.disabled(!quiet)
-            } footer: { Text("Local reminders and in-app banners in this window are skipped, not delayed. Equal start and end means no quiet window. Your iPhone Focus settings also apply.") }
+            } header: { Text("Quiet hours · Gaffney time") } footer: { Text("Local reminders and in-app banners in this window are skipped, not delayed. Equal start and end means no quiet window. Your iPhone Focus settings also apply.") }
             Section { Button("Apply reminder settings") { Task { await store.rescheduleReminders(); await alerts.inspect() } }.disabled(store.loading) }
         }.scrollContentBackground(.hidden).background(HOPStyle.background).navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
         .task { await alerts.inspect() }

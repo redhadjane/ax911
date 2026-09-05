@@ -77,7 +77,7 @@ enum BoardRules {
     static func entries(_ schedule:J,row:J,day:String) -> [J] { schedule["entries"].array.filter { $0["row_id"].text == row.id && $0["day_of_week"].int == HOPDay.weekday(day) } }
     static func closed(_ entries:[J]) -> Bool { !entries.contains {$0["notes"].text.contains("HOP_SLOT_ACTIVE")} && entries.contains { $0["notes"].text.contains("HOP_SLOT_INACTIVE") } }
     static func cellClosed(_ entries:[J],row:J,day:String)->Bool {
-        if entries.contains({!$0["employee_id"].text.isEmpty || $0["notes"].text.contains("HOP_SLOT_ACTIVE")}) {return false}
+        if entries.contains(where:{!$0["employee_id"].text.isEmpty || $0["notes"].text.contains("HOP_SLOT_ACTIVE")}) {return false}
         if closed(entries) {return true}
         let key=row.first("row_key","key"),weekday=HOPDay.weekday(day)
         if ["main_am1","main_am2","host_am1"].contains(key) {return weekday == 6}

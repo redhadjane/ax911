@@ -110,6 +110,11 @@
     note.className = "ipad-build-label";
     note.textContent = "iPad · 0.1.0 · Live HOP";
     document.querySelector(".sidebar-foot")?.append(note);
+    const backdrop = document.createElement("button");
+    backdrop.className = "ipad-nav-backdrop"; backdrop.type = "button";
+    backdrop.setAttribute("aria-label", "Close navigation");
+    backdrop.addEventListener("click", () => document.body.classList.remove("nav-open"));
+    document.body.append(backdrop);
     const updateViewport = () => document.documentElement.style.setProperty("--ipad-height", `${window.visualViewport?.height || innerHeight}px`);
     window.visualViewport?.addEventListener("resize", updateViewport); updateViewport();
   });

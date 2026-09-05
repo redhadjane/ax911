@@ -4,12 +4,16 @@ html, body { height: 100%; height: var(--ipad-height, 100dvh); }
 .ipad-runtime { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 15px; }
 .ipad-runtime .window-bar { display: none !important; }
 .ipad-runtime .app-frame { height: 100%; }
-.ipad-runtime .app-shell { min-height: 0; }
+.ipad-runtime .app-shell { min-height: 0; grid-template-columns: 218px minmax(0,1fr); }
 .ipad-runtime .workspace { min-height: 0; }
 .ipad-runtime #appMain { min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; padding: 22px 20px 40px; }
 .ipad-runtime .sidebar { padding-top: 20px; }
 .ipad-runtime #primaryNav { min-height: 0; overflow-y: auto; }
 .ipad-runtime .nav-item { min-height: 44px; height: auto; font-size: 14px; padding: 10px; }
+.ipad-runtime .nav-item span { display: inline; }
+.ipad-runtime .sidebar-foot small { display: block; }
+.ipad-runtime .sidebar-toggle { display: none; }
+.ipad-nav-backdrop { display: none; }
 .ipad-runtime .toolbar { padding: 12px 20px; }
 .ipad-runtime .toolbar-actions { gap: 9px; }
 .ipad-runtime button, .ipad-runtime select, .ipad-runtime input:not([type="checkbox"]):not([type="radio"]) { min-height: 42px; }
@@ -19,6 +23,7 @@ html, body { height: 100%; height: var(--ipad-height, 100dvh); }
 .ipad-runtime .page-head h2 { font-size: 25px; }
 .ipad-runtime .page-head p, .ipad-runtime .card-head p { font-size: 12px; }
 .ipad-runtime .detail-panel { min-width: 0; }
+.ipad-runtime .schedule-inspector { display: block; }
 .ipad-runtime .action-dialog { max-height: calc(var(--ipad-height, 100dvh) - 24px); width: min(1050px, calc(100vw - 28px)); }
 .ipad-runtime .action-dialog form { max-height: calc(var(--ipad-height, 100dvh) - 28px); }
 .ipad-runtime .action-dialog .dialog-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -29,14 +34,15 @@ html, body { height: 100%; height: var(--ipad-height, 100dvh); }
 .ipad-build-label { color: var(--muted); font-size: 10px; margin-top: 12px; }
 @media (max-width: 1180px) {
   .ipad-runtime .global-search { display: none; }
-  .ipad-runtime .schedule-layout { grid-template-columns: minmax(0, 1fr); }
-  .ipad-runtime .schedule-layout .detail-panel { position: static; }
+  .ipad-runtime .schedule-layout, .ipad-runtime .schedule-shell, .ipad-runtime .workspace-three { grid-template-columns: minmax(0, 1fr); }
+  .ipad-runtime .schedule-layout .detail-panel, .ipad-runtime .schedule-inspector, .ipad-runtime .context-inspector { position: static !important; width: auto !important; max-height: none !important; }
   .ipad-runtime .split-view, .ipad-runtime .three-panel { grid-template-columns: 1fr; }
 }
 @media (max-width: 950px) {
   .ipad-runtime .app-shell { grid-template-columns: minmax(0, 1fr); }
-  .ipad-runtime .sidebar { position: fixed; inset: 0 auto 0 0; width: 248px; transform: translateX(-100%); box-shadow: var(--shadow); z-index: 80; }
+  .ipad-runtime .sidebar { position: fixed; inset: 0 auto 0 0; left: 0; width: 248px; transform: translateX(-100%); box-shadow: var(--shadow); z-index: 80; transition: transform .18s ease; }
   .ipad-runtime.nav-open .sidebar { transform: none; }
+  .ipad-runtime.nav-open .ipad-nav-backdrop { display: block; position: fixed; inset: 0; z-index: 75; border: 0; border-radius: 0; background: rgba(16,36,31,.3); width: 100%; height: 100%; }
   .ipad-runtime .mobile-nav { display: block; min-width: 44px; }
   .ipad-runtime .sidebar-toggle { display: none; }
   .ipad-runtime .toolbar { padding: 10px 12px; }

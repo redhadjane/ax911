@@ -78,6 +78,8 @@ test('Only trusted local frame can access bridge and native token rejects redire
   assert.match(native,/completionHandler\(nil\)/); assert.match(native,/manager.save\(token\)/);
   assert.match(native,/payload\["access_token"\] = "native-session"/);
   assert.match(read('Sources/ManagerSession.swift'),/kSecAttrAccessibleWhenUnlockedThisDeviceOnly/);
+  assert.match(native,/runJavaScriptConfirmPanelWithMessage/);
+  assert.match(native,/completionHandler\(false\)/);
 });
 test('Portrait documents and landscape wallboards use same PDF for print and share', () => {
   const script = read('Bridge/native.js');

@@ -176,6 +176,19 @@ final class NoRedirect: NSObject, URLSessionTaskDelegate {
         decisionHandler(.cancel)
     }
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? { nil }
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+        guard frame.isMainFrame, CommandPolicy.isBundledPage(frame.request.url, root: root), presentedViewController == nil else { completionHandler(false); return }
+        let alert = UIAlertController(title: "Confirm HOP action", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completionHandler(false) })
+        alert.addAction(UIAlertAction(title: "Continue", style: .default) { _ in completionHandler(true) })
+        present(alert, animated: true)
+    }
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+        guard frame.isMainFrame, CommandPolicy.isBundledPage(frame.request.url, root: root), presentedViewController == nil else { completionHandler(); return }
+        let alert = UIAlertController(title: "HOP Command Center", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler() })
+        present(alert, animated: true)
+    }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         showError("iPad closed the workspace to free memory. Reload to reconnect. Unsaved edits may need to be entered again.", reload: true)
     }

@@ -18,7 +18,7 @@ struct NativePrintAction:UIViewRepresentable {
     func makeCoordinator()->Coordinator {Coordinator(document)}
     func makeUIView(context:Context)->UIButton {let button=UIButton(type:.system);button.setTitle(" AirPrint",for:.normal);button.setImage(UIImage(systemName:"printer"),for:.normal);button.addTarget(context.coordinator,action:#selector(Coordinator.printDocument(_:)),for:.touchUpInside);return button}
     func updateUIView(_ button:UIButton,context:Context) {context.coordinator.document=document}
-    final class Coordinator:NSObject {
+    @MainActor final class Coordinator:NSObject {
         var document:NativeDocument
         init(_ document:NativeDocument) {self.document=document}
         @objc func printDocument(_ button:UIButton) {

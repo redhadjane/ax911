@@ -9,7 +9,7 @@ let package = Package(
     targets: [
         .target(name: "HOPCore", path: "Sources",
                 exclude: ["HOPAPI.swift", "SessionStore.swift", "HOPEmployeeApp.swift",
-                          "WorkspaceViews.swift", "WorkflowViews.swift", "ClubViews.swift"],
+                          "WorkspaceViews.swift", "WorkflowViews.swift", "ClubViews.swift", "StaffExperience.swift"],
                 sources: ["HOPCore.swift"]),
         .testTarget(name: "HOPCoreTests", dependencies: ["HOPCore"], path: "Tests",
                     exclude: ["HOPAPITests.swift"],

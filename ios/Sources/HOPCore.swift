@@ -258,3 +258,34 @@ public enum HOPExport {
         lines += ["END:VCALENDAR"]; return lines.joined(separator: "\r\n") + "\r\n"
     }
 }
+
+// Foundation-only projections: one indexed grid per render, never a schedule
+// reparse per cell. IDs, rather than display names, keep coworkers distinct.
+public struct HOPTeamBoard {
+    public let employees: [HOPShift]
+    public let cells: [String: [HOPShift]]
+    public let doubleCounts: [String: Int]
+    public init(shifts: [HOPShift], allShifts: [HOPShift]) {
+        let people = Dictionary(grouping: shifts, by: \.employeeID)
+        employees = people.values.compactMap(\.first).sorted {
+            ($0.employeeName.lowercased(), $0.employeeID) < ($1.employeeName.lowercased(), $1.employeeID)
+        }
+        cells = Dictionary(grouping: shifts, by: { $0.employeeID + "|" + $0.date })
+        doubleCounts = Dictionary(grouping: allShifts, by: { $0.employeeID + "|" + $0.date }).mapValues { Set($0.map(\.id)).count }
+    }
+}
+
+public enum HOPAlertPolicy {
+    public static func quiet(_ date: Date, enabled: Bool, start: Int, end: Int) -> Bool {
+        guard enabled, start != end else { return false }
+        let parts = HOPCalendar.calendar.dateComponents([.hour, .minute], from: date)
+        let minute = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        return start < end ? minute >= start && minute < end : minute >= start || minute < end
+    }
+    public static func reminderDate(_ shift: HOPShift, employeeID: String, lead: Int, now: Date, expires: Date, quietEnabled: Bool, quietStart: Int, quietEnd: Int) -> Date? {
+        guard shift.employeeID == employeeID, [15,30,60,120].contains(lead), let start = shift.startInstant else { return nil }
+        let fire = start.addingTimeInterval(-Double(lead * 60))
+        guard fire > now, fire < expires, !quiet(fire, enabled: quietEnabled, start: quietStart, end: quietEnd) else { return nil }
+        return fire
+    }
+}

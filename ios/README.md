@@ -2,6 +2,21 @@
 
 Native SwiftUI client for the existing HOP system. iOS 17+, Apple SDKs only, no WebView or bundled business records. This is a separate testing client; it does not replace the employee website or manager desktop.
 
+## Version 0.2.0 (build 3)
+
+Warm HOP brand colors in light/dark mode, a published Everyone/My shifts weekly
+board with role filters and shift details, Today task/party shortcuts, and real
+local iPhone shift reminders with permission checks, quiet hours and sound/privacy
+options. Existing requests, availability, tasks, profile/photo/PIN approval and
+HOP Club workflows remain connected. No sample staff schedules are bundled.
+
+Local reminders are opt-in, based on published schedules last loaded on the phone,
+and stop at employee session expiry. Remote schedule changes cannot update them
+until HOP opens and refreshes. Foreground banners are category-filtered; the Inbox
+still retains all messages. Real background APNs is not enabled by these settings.
+Per-employee broadcast read receipts are an additive, separately deployed backend
+update, not a migration installed by this IPA. Pilot verification is required.
+
 ## Cloud build
 
 The `hop-employee-ios` branch in `redhadjane/ax911` contains this project independently of Sonata. The HOP workflow runs on changes to `ios/` on this branch, tests the Foundation contracts, and compiles an unsigned physical-device IPA on macOS. Simulator tests are optional and off by default.

@@ -32,11 +32,15 @@ struct HomeView: View {
                             ForEach(today) { shift in VStack(alignment: .leading, spacing: 5) { Text(shift.time).font(.title2.bold()); Text("\(shift.role) · \(shift.slot)").font(.headline) } }
                         }
                         Button { store.screen = .schedule } label: { Label("See schedule", systemImage: "arrow.right").font(.subheadline.weight(.semibold)) }.buttonStyle(.bordered).tint(.white)
-                    }.padding(24).frame(maxWidth: .infinity, alignment: .leading).foregroundStyle(.white).background(HOPStyle.green, in: RoundedRectangle(cornerRadius: 26))
+                    }.padding(24).frame(maxWidth: .infinity, alignment: .leading).foregroundStyle(.white).background(LinearGradient(colors: [HOPStyle.hero, Color(red: 11/255, green: 122/255, blue: 99/255)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 26))
                 }
                 HOPError(section: "next")
                 if let next = store.futureShifts.first(where: { ($0.startInstant ?? .distantPast) > Date() }) {
-                    HOPSection(title: "Up next") { ShiftRow(shift: next, showEmployee: false, double: false) }
+                    HOPSection(title: "Up next") {
+                        Button { Task { await store.selectWeek(next.date); store.focusedShiftID = next.id; store.screen = .schedule } } label: {
+                            VStack(alignment: .leading, spacing: 8) { Text(HOPCalendar.label(next.date, format: "EEEE, MMM d")).font(.subheadline.weight(.semibold)); ShiftRow(shift: next, showEmployee: false, double: false) }
+                        }.buttonStyle(.plain)
+                    }
                 }
                 if store.data["mine"] != nil {
                     HOPSection(title: "Your week") {
@@ -57,8 +61,11 @@ struct HomeView: View {
                         QuickAction(title: "My tasks", icon: "checklist", route: .tasks)
                         QuickAction(title: "Requests", icon: "arrow.left.arrow.right", route: .requests)
                         QuickAction(title: "HOP Club", icon: "qrcode.viewfinder", route: .club)
+                        QuickAction(title: "Parties", icon: "person.3", route: .parties)
+                        QuickAction(title: "My profile", icon: "person.crop.circle", route: .profile)
                     }
                 }
+                TodayWorkSummary()
                 HOPError(section: "notifications")
                 if !store.notifications.isEmpty {
                     HOPSection(title: store.unread > 0 ? "Needs your attention" : "Latest from HOP") {
@@ -99,12 +106,12 @@ struct EmployeeAvatar: View {
 
 struct ScheduleView: View {
     @EnvironmentObject private var store: HOPStore
-    @State private var team = false
+    @AppStorage("hopScheduleTeam") private var team = true
     @State private var role = "all"
     @State private var selected: HOPShift?
     @State private var share: ShareDocument?
     @State private var showSwap = false
-    @AppStorage("hopScheduleMode") private var mode = "agenda"
+    @AppStorage("hopScheduleMode") private var mode = "board"
     @State private var selectedDay = ""
     private var matching: [HOPShift] { (team ? store.teamShifts : store.shifts).filter { role == "all" || $0.roleKey == role } }
     private var visible: [HOPShift] { matching.filter { mode != "day" || $0.date == selectedDay } }
@@ -120,7 +127,7 @@ struct ScheduleView: View {
                 WeekControl()
                 Picker("Schedule", selection: $team) { Text("My shifts").tag(false); Text("Everyone").tag(true) }.pickerStyle(.segmented)
                 Picker("Role", selection: $role) { Text("All roles").tag("all"); Text("Serving").tag("main"); Text("Hosting").tag("host"); Text("Floor help").tag("support") }.pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
-                Picker("Layout", selection: $mode) { Text("Week agenda").tag("agenda"); Text("By day").tag("day") }.pickerStyle(.segmented)
+                Picker("Layout", selection: $mode) { Text("Week board").tag("board"); Text("Agenda").tag("agenda"); Text("Day").tag("day") }.pickerStyle(.segmented)
                 if mode == "day" {
                     ScrollView(.horizontal) {
                         HStack(spacing: 10) {
@@ -137,7 +144,9 @@ struct ScheduleView: View {
                 if team { HOPError(section: "directory") }
                 if store.loading && store.data[team ? "team" : "mine"] == nil { ProgressView("Loading published schedule…").padding(36) }
                 else if visible.isEmpty && store.errors[team ? "team" : "mine"] == nil { HOPEmpty(title: "No published shifts", detail: "There are no published assignments for this view. Draft changes stay private until your manager publishes them.", icon: "calendar") }
-                ForEach(groups.keys.sorted(), id: \.self) { day in
+                if mode == "board" && !matching.isEmpty {
+                    TeamWeekBoard(shifts: matching, allShifts: schedule, week: store.week, employeeID: store.employee?.id ?? "") { selected = $0; HOPStyle.haptic() }
+                } else { ForEach(groups.keys.sorted(), id: \.self) { day in
                     HOPSection(title: HOPCalendar.label(day, format: "EEEE, MMM d")) {
                         ForEach(groups[day] ?? []) { shift in
                             Button { selected = shift; HOPStyle.haptic() } label: {
@@ -145,12 +154,14 @@ struct ScheduleView: View {
                             }.buttonStyle(.plain)
                         }
                     }
-                }
+                } }
                 Text("Times are shown in Gaffney time (Eastern), including when you travel.").font(.caption).foregroundStyle(.secondary)
             }.padding(20)
         }.background(HOPStyle.background).navigationTitle("Schedule").refreshable { await store.refresh() }
         .onAppear { if selectedDay.isEmpty { selectedDay = HOPCalendar.tuesday(HOPCalendar.today()) == store.week && HOPCalendar.today() <= HOPCalendar.add(store.week, days: 5) ? HOPCalendar.today() : store.week } }
         .onChange(of: store.week) { _, key in selectedDay = key }
+        .onChange(of: store.focusedShiftID, initial: true) { _, id in focusShift(id) }
+        .onChange(of: store.shifts) { _, _ in focusShift(store.focusedShiftID) }
         .toolbar { ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Button("Share printable PDF", systemImage: "doc.richtext") { export("pdf") }
@@ -169,7 +180,7 @@ struct ScheduleView: View {
                     if shift.employeeID == store.employee?.id {
                         Section {
                             Button("Request a shift switch", systemImage: "arrow.left.arrow.right") { showSwap = true }
-                            Button("View shift tasks", systemImage: "checklist") { selected = nil; store.screen = .tasks }
+                            Button("View shift tasks", systemImage: "checklist") { selected = nil; store.taskShiftID = shift.id; store.screen = .tasks }
                         } footer: { Text("A switch is not final until the other employee accepts and a manager approves.") }
                     }
                 }.navigationTitle("Shift details").navigationBarTitleDisplayMode(.inline)
@@ -177,6 +188,10 @@ struct ScheduleView: View {
                 .sheet(isPresented: $showSwap) { NavigationStack { ShiftSwitchView(initialShiftID: shift.id) } }
             }.presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
         }
+    }
+    private func focusShift(_ id: String?) {
+        guard let id, let shift = (store.shifts + store.teamShifts).first(where: { $0.id == id }) else { return }
+        selected = shift; store.focusedShiftID = nil
     }
     private func export(_ format: String) {
         do {
@@ -221,7 +236,8 @@ struct NotificationsView: View {
                 if store.loading && store.data["notifications"] == nil { ProgressView("Loading messages…") }
                 else if records.isEmpty && store.errors["notifications"] == nil { HOPEmpty(title: "You're caught up", detail: "Announcements and request decisions appear here.", icon: "bell.badge") }
                 ForEach(records) { record in Button { selected = record } label: { NotificationRow(record: record) }.buttonStyle(.plain) }
-                Text("Messages refresh while HOP is open. iPhone background push is not enabled in this build.").font(.caption).foregroundStyle(.secondary)
+                NavigationLink { AlertSettingsView() } label: { Label("Notification settings & delivery status", systemImage: "slider.horizontal.3").font(.subheadline) }
+                Text("Live messages refresh while HOP is open. Scheduled reminders are local to this iPhone; background server push still needs Apple signing and server setup.").font(.caption).foregroundStyle(.secondary)
             }.padding(20)
         }.background(HOPStyle.background).navigationTitle("Inbox").refreshable { await store.refresh() }
         .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Read all") { Task { _ = await store.act("/api/notifications/employee/\(store.employee?.id ?? "")/read-all", success: "Messages marked as read.") } }.disabled(store.busy || store.unread == 0) } }
@@ -252,10 +268,11 @@ struct NotificationRow: View {
 struct TasksView: View {
     @EnvironmentObject private var store: HOPStore
     @State private var showDone = true
-    private var assignments: [HOPRecord] { store.records("tasks", "assignments").filter { showDone || !$0["completed"].flag } }
+    private var assignments: [HOPRecord] { store.records("tasks", "assignments").filter { (showDone || !$0["completed"].flag) && (store.taskShiftID == nil || $0["schedule_entry_id"].text == store.taskShiftID) } }
     var body: some View {
         ScrollView { LazyVStack(spacing: 16) {
             WeekControl(); Toggle("Show completed tasks", isOn: $showDone); HOPError(section: "tasks")
+            if store.taskShiftID != nil { Button("Showing one shift · Show all my tasks") { store.taskShiftID = nil }.buttonStyle(.bordered) }
             if store.loading && store.data["tasks"] == nil { ProgressView("Loading your assigned tasks…") }
             else if assignments.isEmpty && store.errors["tasks"] == nil { HOPEmpty(title: "No tasks in this view", detail: "Tasks follow your published shift assignments. Your manager can add tasks to a shift.", icon: "checklist") }
             ForEach(assignments) { task in
@@ -325,6 +342,7 @@ struct ProfileView: View {
                 Button("HOP Club scanner", systemImage: "qrcode.viewfinder") { store.screen = .club }
             }
             Section("On this iPhone") {
+                NavigationLink { AlertSettingsView() } label: { Label("Notifications & reminders", systemImage: "bell.badge") }
                 Picker("Appearance", selection: $appearance) { Text("System").tag("system"); Text("Light").tag("light"); Text("Dark").tag("dark") }
                 Toggle("Touch feedback", isOn: $haptics)
                 Toggle("Use profile photos", isOn: $usePhoto)
@@ -347,7 +365,7 @@ struct ProfileView: View {
             }
             Section { Button("Sign out", role: .destructive) { signOut = true } }
             Section { LabeledContent("Version", value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))") }
-        }.navigationTitle("Me").sheet(isPresented: $edit) { NavigationStack { ProfileRequestView() } }
+        }.scrollContentBackground(.hidden).background(HOPStyle.background).navigationTitle("Me").sheet(isPresented: $edit) { NavigationStack { ProfileRequestView() } }
         .confirmationDialog("Sign out of HOP on this iPhone?", isPresented: $signOut, titleVisibility: .visible) { Button("Sign out", role: .destructive) { store.logout() } }
     }
 }

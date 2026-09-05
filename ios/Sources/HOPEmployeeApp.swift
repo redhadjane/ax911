@@ -14,10 +14,20 @@ import UIKit
 }
 
 enum HOPStyle {
-    static let green = Color(red: 0.06, green: 0.42, blue: 0.32)
-    static let warm = Color(red: 0.95, green: 0.92, blue: 0.85)
-    static let background = Color(uiColor: .systemGroupedBackground)
-    static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+    static func adaptive(_ light: UInt32, _ dark: UInt32) -> Color {
+        Color(uiColor: UIColor { traits in
+            let value = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(red: CGFloat((value >> 16) & 255) / 255, green: CGFloat((value >> 8) & 255) / 255, blue: CGFloat(value & 255) / 255, alpha: 1)
+        })
+    }
+    static let green = adaptive(0x0F5B4C, 0x71C7AF)
+    static let hero = Color(red: 15/255, green: 91/255, blue: 76/255)
+    static let secondaryGreen = adaptive(0x0B7A63, 0x87D7BE)
+    static let warm = adaptive(0xFFFBF2, 0x20352E)
+    static let background = adaptive(0xF5F2EA, 0x10241F)
+    static let surface = adaptive(0xFFFFFF, 0x19332B)
+    static let paper = adaptive(0xFFFDF7, 0x203B32)
+    static let border = adaptive(0xE8DFCF, 0x365348)
     @MainActor static func haptic() { if UserDefaults.standard.object(forKey: "hopHaptics") as? Bool != false { UISelectionFeedbackGenerator().selectionChanged() } }
 }
 
@@ -27,6 +37,7 @@ struct HOPRoot: View {
     @EnvironmentObject private var store: HOPStore
     @Environment(\.scenePhase) private var phase
     @State private var feature: HOPLink?
+    @ObservedObject private var alerts = HOPDeviceAlerts.shared
     var body: some View {
         Group {
             if store.employee == nil { LoginView() }
@@ -76,6 +87,25 @@ struct HOPRoot: View {
         }
         .onChange(of: phase) { _, value in if value == .active, store.employee != nil, !store.busy { Task { await store.ensureLoaded(store.presentedScreen ?? store.screen) } } }
         .onChange(of: store.employee?.id) { _, value in if value == nil { feature = nil } }
+        .task(id: "\(store.employee?.id ?? "")|\(alerts.destination?.id.uuidString ?? "")") {
+            if let destination = alerts.destination, store.employee?.id == destination.employeeID {
+                alerts.destination = nil
+                await store.selectWeek(destination.date)
+                store.focusedShiftID = destination.shiftID
+                store.screen = .schedule
+            }
+        }
+        .overlay(alignment: .top) {
+            if let alert = store.inAppAlert, phase == .active {
+                HStack(alignment: .top, spacing: 12) {
+                    Button { store.inAppAlert = nil; Task { await store.openNotification(alert) } } label: {
+                        Label { VStack(alignment: .leading, spacing: 5) { Text(alert.title).font(.headline); Text(alert["message"].text).font(.subheadline).lineLimit(2) } } icon: { Image(systemName: "bell.badge.fill") }
+                    }.buttonStyle(.plain)
+                    Spacer(minLength: 0)
+                    Button { store.inAppAlert = nil } label: { Image(systemName: "xmark").frame(width: 44, height: 44) }.accessibilityLabel("Dismiss notification")
+                }.padding(16).background(HOPStyle.paper, in: RoundedRectangle(cornerRadius: 22)).overlay(RoundedRectangle(cornerRadius: 22).stroke(HOPStyle.border)).shadow(color: .black.opacity(0.12), radius: 16, y: 6).padding(12)
+            }
+        }
         .overlay { if phase != .active && store.employee != nil { ZStack { HOPStyle.background.ignoresSafeArea(); VStack(spacing: 16) { Image("HOPLogo").resizable().scaledToFit().frame(width: 80, height: 80); Text("HOP Staff").font(.title2.bold()); Label("Your information is protected", systemImage: "lock").font(.subheadline).foregroundStyle(.secondary) } } } }
         .alert("House of Pizza", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
             Button("OK") { store.message = nil }
@@ -131,7 +161,7 @@ struct HOPSection<Content: View>: View {
 }
 struct HOPCard<Content: View>: View {
     @ViewBuilder var content: Content
-    var body: some View { VStack(alignment: .leading, spacing: 12) { content }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(HOPStyle.surface, in: RoundedRectangle(cornerRadius: 20)) }
+    var body: some View { VStack(alignment: .leading, spacing: 12) { content }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(HOPStyle.surface, in: RoundedRectangle(cornerRadius: 20)).overlay(RoundedRectangle(cornerRadius: 20).stroke(HOPStyle.border.opacity(0.7), lineWidth: 1)) }
 }
 struct HOPEmpty: View {
     let title: String

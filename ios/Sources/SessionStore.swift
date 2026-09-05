@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Security
+import AudioToolbox
 
 struct EmployeeSession: Codable {
     var employee: HOPRecord
@@ -66,6 +67,10 @@ enum SessionKeychain {
     @Published var message: String?
     @Published var loginError: String?
     @Published var lastRefresh: Date?
+    @Published var focusedShiftID: String?
+    @Published var taskShiftID: String?
+    @Published var inAppAlert: HOPRecord?
+    private var seenNotificationIDs: Set<String>?
     private var generation = 0
     private var sessionVersion = 0
     private var expiry = Date.distantPast
@@ -79,7 +84,7 @@ enum SessionKeychain {
     func restore() async {
         guard let encoded = SessionKeychain.read(), let session = try? JSONDecoder().decode(EmployeeSession.self, from: encoded) else { return }
         guard session.expiresAt > Date() else { logout(); loginError = "Please sign in again to see your latest schedule."; return }
-        sessionVersion += 1; employee = session.employee; expiry = session.expiresAt; await api.authorize(session.token, version: sessionVersion)
+        sessionVersion += 1; employee = session.employee; expiry = session.expiresAt; HOPDeviceAlerts.shared.setEmployee(session.employee.id); await api.authorize(session.token, version: sessionVersion)
         loadSnapshot()
         await refresh()
     }
@@ -93,7 +98,7 @@ enum SessionKeychain {
             guard !person.id.isEmpty, !token.isEmpty, person.status == "active" else { throw HOPAPIError(status: 401, message: "HOP did not return an active employee session.") }
             let session = EmployeeSession(employee: minimalIdentity(person), token: token, expiresAt: Date().addingTimeInterval(result["expires_in"].number))
             try SessionKeychain.write(JSONEncoder().encode(session))
-            employee = person; expiry = session.expiresAt; week = HOPCalendar.tuesday(HOPCalendar.today()); screen = .home; await api.authorize(token, version: attempt)
+            employee = person; expiry = session.expiresAt; HOPDeviceAlerts.shared.setEmployee(person.id); week = HOPCalendar.tuesday(HOPCalendar.today()); screen = .home; await api.authorize(token, version: attempt)
             loadSnapshot()
             await refresh()
         } catch { loginError = error.localizedDescription }
@@ -103,6 +108,7 @@ enum SessionKeychain {
         sessionVersion += 1; let version = sessionVersion
         generation += 1; SessionKeychain.clear(); SessionKeychain.clear(account: "club")
         inFlight = [:]; loadedAt = [:]; endpointMilliseconds = [:]; presentedScreen = nil
+        focusedShiftID = nil; taskShiftID = nil; inAppAlert = nil; seenNotificationIDs = nil; HOPDeviceAlerts.shared.setEmployee("")
         employee = nil; data = [:]; errors = [:]; expiry = .distantPast; loading = false; message = nil; lastRefresh = nil
         Task { await api.authorize("", version: version) }
     }
@@ -154,7 +160,7 @@ enum SessionKeychain {
                     }
                     if key == "directory" { setData(key, .object(["employees": .array(payload["employees"].records.map { minimalIdentity($0).raw })])) }
                     else if key == "pending" || key == "history" { setData(key, safeRequestList(payload)) }
-                    else { setData(key, payload) }
+                    else { setData(key, payload); if key == "notifications" { updateAlertBanner() } }
                     setError(key, nil); loadedAt[key] = Date()
                     if key == "profile" {
                         let updated = HOPRecord(payload["employee"])
@@ -171,6 +177,9 @@ enum SessionKeychain {
         if !keys.isDisjoint(with: ["mine", "team", "next", "directory"]), errors["mine"] == nil, errors["team"] == nil {
             ScheduleCache.write(employee: person.id, week: requestedWeek, sections: data)
         }
+        if endpoints.contains(where: { $0.0 == "mine" || $0.0 == "next" }) {
+            await syncLoadedReminders()
+        }
     }
     func changeWeek(_ days: Int) async { await selectWeek(HOPCalendar.add(week, days: days)) }
     func selectWeek(_ value: String) async {
@@ -183,6 +192,7 @@ enum SessionKeychain {
             errors = errors.filter { !HOPRefreshPlan.weekScoped.contains($0.key) }
             loadedAt = loadedAt.filter { !HOPRefreshPlan.weekScoped.contains($0.key) }
             week = selected; loadSnapshot()
+            taskShiftID = nil
         }
         await refresh()
     }
@@ -227,7 +237,46 @@ enum SessionKeychain {
     var unread: Int { notifications.filter { !$0.isRead }.count }
     func records(_ section: String, _ key: String) -> [HOPRecord] { data[section]?[key].records ?? [] }
     func openNotification(_ record: HOPRecord) async {
-        screen = HOPLink.notification(record)
+        let route = HOPLink.notification(record), payload = record["payload"]
+        let date = payload["week_start"].text.isEmpty ? payload["date"].text : payload["week_start"].text
+        if [.schedule, .tasks, .parties, .availability].contains(route), HOPCalendar.date(date) != nil { await selectWeek(date) }
+        if route == .schedule { focusedShiftID = payload["schedule_entry_id"].text.isEmpty ? nil : payload["schedule_entry_id"].text }
+        if route == .tasks { taskShiftID = payload["schedule_entry_id"].text.isEmpty ? nil : payload["schedule_entry_id"].text }
+        screen = route
         if !record.isRead { _ = await act("/api/notifications/\(record.id)/read", success: "Notification read") }
+    }
+    private func updateAlertBanner() {
+        let ids = Set(notifications.map(\.id))
+        defer { seenNotificationIDs = (seenNotificationIDs ?? []).union(ids) }
+        guard let seen = seenNotificationIDs else { return } // no replay at sign-in
+        let prefs = UserDefaults.standard
+        guard prefs.object(forKey: "hopForegroundAlerts") as? Bool != false,
+              !HOPAlertPolicy.quiet(Date(), enabled: prefs.bool(forKey: "hopQuietHours"), start: prefs.object(forKey: "hopQuietStart") as? Int ?? 1320, end: prefs.object(forKey: "hopQuietEnd") as? Int ?? 420) else { return }
+        let next = notifications.first { record in
+            guard !record.isRead, !seen.contains(record.id) else { return false }
+            let route = HOPLink.notification(record)
+            let key = route == .schedule ? "hopAlertSchedule" : route == .requests || route == .availability ? "hopAlertRequests" : route == .tasks ? "hopAlertTasks" : route == .parties ? "hopAlertParties" : "hopAlertOther"
+            return prefs.object(forKey: key) as? Bool != false
+        }
+        guard let next else { return }
+        inAppAlert = next
+        if prefs.object(forKey: "hopAlertSound") as? Bool != false { AudioServicesPlaySystemSound(1007) }
+        Task { try? await Task.sleep(for: .seconds(8)); if inAppAlert?.id == next.id { inAppAlert = nil } }
+    }
+    func rescheduleReminders() async {
+        guard employee != nil else { return }
+        HOPDeviceAlerts.shared.clear()
+        await refresh(sections: ["mine", "next"])
+    }
+    private func syncLoadedReminders() async {
+        guard let person = employee else { return }
+        let version = sessionVersion, selectedWeek = week
+        if data["mine"] != nil && errors["mine"] == nil { await HOPDeviceAlerts.shared.synchronize(shifts: shifts, employeeID: person.id, week: selectedWeek, expires: expiry) }
+        guard version == sessionVersion, selectedWeek == week else { return }
+        if data["next"] != nil && errors["next"] == nil {
+            let nextWeek = HOPCalendar.add(selectedWeek, days: 7)
+            let next = HOPShift.from(data["next"] ?? .null, week: nextWeek, employeeID: person.id)
+            await HOPDeviceAlerts.shared.synchronize(shifts: next, employeeID: person.id, week: nextWeek, expires: expiry)
+        }
     }
 }

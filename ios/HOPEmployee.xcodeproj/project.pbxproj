@@ -6,6 +6,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A3000000000000000000000C /* StaffExperience.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4000000000000000000000F; };
 		A30000000000000000000001 /* HOPCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000001 /* HOPCore.swift */; };
 		A30000000000000000000002 /* HOPAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000002 /* HOPAPI.swift */; };
 		A30000000000000000000003 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000003 /* SessionStore.swift */; };
@@ -30,6 +31,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A4000000000000000000000F /* StaffExperience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffExperience.swift; sourceTree = "<group>"; };
 		A40000000000000000000001 /* HOPCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HOPCore.swift; sourceTree = "<group>"; };
 		A40000000000000000000002 /* HOPAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HOPAPI.swift; sourceTree = "<group>"; };
 		A40000000000000000000003 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
@@ -59,7 +61,7 @@
 		};
 		A20000000000000000000002 /* Sources */ = {
 			isa = PBXGroup;
-			children = (A40000000000000000000001, A40000000000000000000002, A40000000000000000000003, A40000000000000000000004, A40000000000000000000005, A40000000000000000000006, A40000000000000000000007);
+			children = (A40000000000000000000001, A40000000000000000000002, A40000000000000000000003, A40000000000000000000004, A40000000000000000000005, A40000000000000000000006, A40000000000000000000007, A4000000000000000000000F);
 			path = Sources;
 			sourceTree = "<group>";
 		};
@@ -138,7 +140,7 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A70000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A30000000000000000000001, A30000000000000000000002, A30000000000000000000003, A30000000000000000000004, A30000000000000000000005, A30000000000000000000006, A30000000000000000000007); runOnlyForDeploymentPostprocessing = 0; };
+		A70000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A30000000000000000000001, A30000000000000000000002, A30000000000000000000003, A30000000000000000000004, A30000000000000000000005, A30000000000000000000006, A30000000000000000000007, A3000000000000000000000C); runOnlyForDeploymentPostprocessing = 0; };
 		A70000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A30000000000000000000008, A3000000000000000000000B); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
@@ -152,12 +154,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.houseofpizzagaffney.employee;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -172,11 +174,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.houseofpizzagaffney.employee;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

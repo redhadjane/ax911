@@ -154,4 +154,40 @@ final class HOPCoreTests: XCTestCase {
         XCTAssertNil(HOPCalendar.date("2025-02-29")); XCTAssertNil(HOPCalendar.date("0000-01-01"))
         XCTAssertEqual(HOPCalendar.key(HOPCalendar.date("2028-02-29")!), "2028-02-29")
     }
+    func testWeekBoardGroupsByIdentityNotDuplicateNames() {
+        let shifts = HOPShift.from(payload(entries: [entry(), entry("b", employee: "employee-b", row: "row-host"), entry("double", row: "row-floor")]), week: "2026-09-15").map { $0.named("Same Name") }
+        let board = HOPTeamBoard(shifts: shifts, allShifts: shifts)
+        XCTAssertEqual(board.employees.count, 2)
+        XCTAssertEqual(board.cells["employee-a|2026-09-17"]?.count, 2)
+        XCTAssertEqual(board.doubleCounts["employee-b|2026-09-17"], 1)
+        XCTAssertNil(board.cells["employee-a|2026-09-18"])
+    }
+    func testRoleFilteredBoardRetainsCrossRoleDoubleBadge() {
+        let shifts = HOPShift.from(payload(entries: [entry(), entry("second", row: "row-host")]), week: "2026-09-15")
+        let board = HOPTeamBoard(shifts: shifts.filter { $0.roleKey == "host" }, allShifts: shifts)
+        XCTAssertEqual(board.cells["employee-a|2026-09-17"]?.count, 1)
+        XCTAssertEqual(board.doubleCounts["employee-a|2026-09-17"], 2)
+    }
+    func testQuietHoursCrossMidnightAndUseEasternTime() {
+        let night = HOPCalendar.instant(day: "2026-09-17", time: "23:00")!
+        let morning = HOPCalendar.instant(day: "2026-09-18", time: "07:00")!
+        XCTAssertTrue(HOPAlertPolicy.quiet(night, enabled: true, start: 1320, end: 420))
+        XCTAssertFalse(HOPAlertPolicy.quiet(morning, enabled: true, start: 1320, end: 420))
+        XCTAssertFalse(HOPAlertPolicy.quiet(night, enabled: false, start: 1320, end: 420))
+        XCTAssertFalse(HOPAlertPolicy.quiet(night, enabled: true, start: 0, end: 0))
+    }
+    func testRemindersRequireOwnerFutureTimeAndValidSession() {
+        let shift = HOPShift.from(payload(entries: [entry()]), week: "2026-09-15")[0]
+        let now = HOPCalendar.instant(day: shift.date, time: "08:00")!, expiry = HOPCalendar.instant(day: shift.date, time: "12:00")!
+        func fire(_ owner: String, _ lead: Int = 60, _ at: Date? = nil, _ until: Date? = nil) -> Date? {
+            HOPAlertPolicy.reminderDate(shift, employeeID: owner, lead: lead, now: at ?? now, expires: until ?? expiry, quietEnabled: false, quietStart: 0, quietEnd: 0)
+        }
+        XCTAssertEqual(fire("employee-a"), HOPCalendar.instant(day: shift.date, time: "09:00"))
+        XCTAssertNil(fire("employee-b")); XCTAssertNil(fire("employee-a", 999))
+        XCTAssertNil(fire("employee-a", 60, expiry)); XCTAssertNil(fire("employee-a", 60, now, now))
+    }
+    func testReminderSuppressedRatherThanDelayedByQuietHours() {
+        let shift = HOPShift.from(payload(entries: [entry(start: "08:00", end: "12:00")]), week: "2026-09-15")[0]
+        XCTAssertNil(HOPAlertPolicy.reminderDate(shift, employeeID: "employee-a", lead: 120, now: HOPCalendar.date("2026-09-16")!, expires: HOPCalendar.date("2026-09-19")!, quietEnabled: true, quietStart: 1320, quietEnd: 420))
+    }
 }

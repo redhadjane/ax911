@@ -55,7 +55,7 @@ struct NativeShiftEditor:View {
     @State private var closeConfirm=false
     @State private var checking=false
     var availabilityPath:String {"/api/availability?week_start=\(HOPDay.week(selection.day))"}
-    var availabilityReady:Bool {store.data[availabilityPath] != nil && store.failures[availabilityPath] == nil}
+    var availabilityReady:Bool {guard let payload=store.data[availabilityPath],case .array = payload["availability"] else {return false};return store.failures[availabilityPath] == nil}
     var entries:[J] {BoardRules.entries(schedule,row:selection.row,day:selection.day)}
     var assigned:[J] {entries.filter {!$0["employee_id"].text.isEmpty}}
     var candidates:[J] {store.employees.filter {person in person.id == entry["employee_id"].text || (person["status"].text == "active" && (showAll || (availabilityReady && BoardRules.roleMatch(person,selection.row) && availability(person) != "off" && !BoardRules.overlaps(candidate.set(["employee_id":.s(person.id)]),schedule["entries"].array)))) }.sorted {$0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending}}
@@ -95,6 +95,7 @@ struct NativeShiftEditor:View {
     private func save(_ value:J) {Task {checking=true;defer {checking=false};do {
         if !value["employee_id"].text.isEmpty {
             let latest=try await store.api.request(availabilityPath)
+            guard case .array = latest["availability"] else {throw NativeFailure(status:0,message:"Availability returned an incomplete response. No assignment was saved; refresh and try again.")}
             store.data[availabilityPath]=latest;store.failures[availabilityPath]=nil
             guard let person=store.employees.first(where:{$0.id == value["employee_id"].text}),person["status"].text == "active",BoardRules.roleMatch(person,selection.row) else {throw NativeFailure(status:0,message:"Choose an active employee qualified for this role.")}
             guard BoardRules.availabilityState(person,day:selection.day,row:selection.row,availability:latest.list("availability"),start:value["start_time"].text) != "off" else {throw NativeFailure(status:0,message:"\(person.displayName) is now marked off. Availability was refreshed; choose another employee.")}

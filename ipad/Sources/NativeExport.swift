@@ -126,7 +126,7 @@ enum NativePDF {
                 text("PARTIES",CGRect(x:31,y:122,width:70,height:12),size:8,bold:true)
                 for (i,day) in days.enumerated() {
                     let list=parties.filter {String($0["date"].text.prefix(10)) == day && $0.statusText.lowercased() != "cancelled"}.sorted {$0["time"].text<$1["time"].text}
-                    let summary=list.isEmpty ? "—" : list.map {WallBoardLayout.time($0["time"].text)+" "+$0["name"].text}.joined(separator:" · ")
+                    let summary=list.isEmpty ? "—" : (list.count>1 ? "\(list.count) parties · " : "")+WallBoardLayout.time(list[0]["time"].text)+" "+list[0]["name"].text
                     fitted(summary,CGRect(x:114+CGFloat(i)*109,y:121,width:104,height:14),size:7.5,bold:false)
                     text(HOPDay.label(day,"EEE · MMM d"),CGRect(x:114+CGFloat(i)*109,y:144,width:104,height:14),size:9,bold:true)
                 }

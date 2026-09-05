@@ -130,7 +130,7 @@ enum WallBoardLayout {
     static let gridTop:Double=158
     static let gridBottom:Double=574
     static func rowHeights(assignmentCounts:[Int])->[Double] {
-        let minimum=assignmentCounts.map {Double(max(1,$0)*29+7)}
+        let minimum=assignmentCounts.map {Double(max(1,$0)*29+5)}
         let spare=max(0,gridBottom-gridTop-minimum.reduce(0,+))
         return minimum.map {$0+(minimum.isEmpty ? 0 : spare/Double(minimum.count))}
     }

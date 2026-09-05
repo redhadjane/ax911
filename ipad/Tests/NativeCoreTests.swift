@@ -5,7 +5,7 @@ final class NativeCoreTests:XCTestCase {
         for counts in [Array(repeating:1,count:11),Array(repeating:1,count:3),[1,2,1,1,1,1,1,1,1,1,1]] {
             let heights=WallBoardLayout.rowHeights(assignmentCounts:counts)
             XCTAssertEqual(heights.reduce(0,+),WallBoardLayout.gridBottom-WallBoardLayout.gridTop,accuracy:0.01)
-            for (index,height) in heights.enumerated() {XCTAssertGreaterThanOrEqual(height,Double(max(1,counts[index])*29+7))}
+            for (index,height) in heights.enumerated() {XCTAssertGreaterThanOrEqual(height,Double(max(1,counts[index])*29+5))}
         }
         XCTAssertEqual(WallBoardLayout.time("16:30:00"),"4:30 PM")
         XCTAssertEqual(WallBoardLayout.time("12:00"),"12:00 PM")

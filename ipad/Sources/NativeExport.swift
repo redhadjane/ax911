@@ -142,12 +142,12 @@ enum NativePDF {
                 let groups=days.map {BoardRules.entries(schedule,row:row,day:$0).filter {!$0["employee_id"].text.isEmpty}}
                 for start in stride(from:0,to:max(1,counts[index]),by:12) {
                     let entriesHere=min(12,max(1,counts[index])-start)
-                    let height=counts[index]>12 ? CGFloat(entriesHere*29+7) : CGFloat(heights[index])
+                    let height=counts[index]>12 ? CGFloat(entriesHere*29+5) : CGFloat(heights[index])
                     if y+height>CGFloat(WallBoardLayout.gridBottom)+0.01 {begin()}
                     fill(CGRect(x:24,y:y,width:744,height:height-1),color.withAlphaComponent(0.075))
                     fill(CGRect(x:24,y:y+1,width:3,height:height-3),color)
                     text(row["label"].text+(start>0 ? " cont." : ""),CGRect(x:32,y:y+7,width:75,height:17),size:11,bold:true)
-                    fitted(row["role_group"].text.capitalized,CGRect(x:32,y:y+24,width:75,height:11),size:7,bold:false,color:.darkGray)
+                    fitted(row["role_group"].text.capitalized,CGRect(x:32,y:y+22,width:75,height:11),size:7,bold:false,color:.darkGray)
                     for (i,day) in days.enumerated() {
                         let x=114+CGFloat(i)*109,list=Array(groups[i].dropFirst(start).prefix(12))
                         if list.isEmpty {
@@ -156,7 +156,7 @@ enum NativePDF {
                             text(closed || start>0 ? "—" : "OPEN",CGRect(x:x+9,y:y+13,width:85,height:16),size:10,bold:!closed,color:closed ? .gray : ink)
                         }
                         for (j,entry) in list.enumerated() {
-                            let yy=y+CGFloat(j*29)+5
+                            let yy=y+CGFloat(j*29)+3
                             let name=employees.first {$0.id == entry["employee_id"].text}?.displayName ?? "Unknown employee"
                             let double=schedule["entries"].array.filter {$0["employee_id"] == entry["employee_id"] && $0["day_of_week"] == entry["day_of_week"]}.count>1
                             fill(CGRect(x:x,y:yy,width:103,height:18),.white)

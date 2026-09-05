@@ -42,15 +42,45 @@ struct NativeParties:View {
     @State private var selectedDay=HOPDay.today
     @State private var editing:J?
     @State private var export:NativeDocument?
+    @State private var showContacts=false
     var monthEnd:String {guard let date=HOPDay.parse(month),let next=HOPDay.calendar.date(byAdding:.month,value:1,to:date) else {return month};return HOPDay.add(HOPDay.iso(next),-1)}
     var path:String {"/api/parties?from=\(month)&to=\(monthEnd)"}
     var parties:[J] {store.items(path,"parties")}
     var dates:[String] {let start=HOPDay.add(month,-max(0,HOPDay.weekday(month)));return (0..<42).map {HOPDay.add(start,$0)}}
     var body:some View {NativeScreen(title:"Party calendar",subtitle:"A full month of reservations, with room for additions on the printed board.") {HStack {Button {move(-1)}label:{Image(systemName:"chevron.left")};Text(HOPDay.label(month,"MMMM yyyy")).font(.title2.bold());Button {move(1)}label:{Image(systemName:"chevron.right")};Spacer();Button("Print selected week"){Task {do {let week=HOPDay.week(selectedDay);let value=try await store.api.request("/api/parties?from=\(week)&to=\(HOPDay.add(week,5))");export=NativePDF.parties(value.list("parties"),week:week)}catch {store.report(error)}}}.buttonStyle(.bordered);Button("New party"){editing = .object(["id":.s("new"),"date":.s(selectedDay),"time":.s("17:00"),"status":.s("Booked"),"area":.s("BR"),"count":.n(10)])}.buttonStyle(.borderedProminent)}
+        HStack {Button {showContacts=true}label:{Label("Customer contacts",systemImage:"person.crop.rectangle.stack")}.buttonStyle(.borderedProminent);Text("Find a returning customer and reuse their contact details.").font(.subheadline).foregroundStyle(.secondary);Spacer()}
         LazyVGrid(columns:Array(repeating:GridItem(.flexible(),spacing:6),count:7),spacing:6) {ForEach(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],id:\.self){Text($0).font(.caption.bold()).frame(maxWidth:.infinity)};ForEach(dates,id:\.self){date in let count=parties.filter {String($0["date"].text.prefix(10)) == date}.count;Button {selectedDay=date}label:{VStack(alignment:.leading,spacing:10){Text(HOPDay.label(date,"d")).font(.headline);if count>0 {Text("\(count) \(count == 1 ? "party" : "parties")").font(.caption).foregroundStyle(HOPStyle.green)}else {Text(" ").font(.caption)}}.padding(12).frame(maxWidth:.infinity,minHeight:78,alignment:.topLeading).background(selectedDay == date ? HOPStyle.green.opacity(0.16) : Color(.secondarySystemGroupedBackground),in:RoundedRectangle(cornerRadius:12)).opacity(date.prefix(7) == month.prefix(7) ? 1 : 0.35)}.buttonStyle(.plain)}}
         HOPPanel(title:HOPDay.label(selectedDay,"EEEE, MMMM d")){let list=parties.filter {String($0["date"].text.prefix(10)) == selectedDay};if list.isEmpty {Text("No bookings on this day").foregroundStyle(.secondary)};ForEach(list){party in Button {editing=party}label:{HStack {Text(party["time"].text).font(.title3.bold()).frame(width:90);VStack(alignment:.leading,spacing:5){Text(party.displayName).font(.headline);Text("\(party["count"].text) guests · \(party["area"].text) · \(party["phone"].text)").foregroundStyle(.secondary)};Spacer();StatusTag(value:party.statusText);Image(systemName:"chevron.right")}.padding(.vertical,10)}.buttonStyle(.plain)}}
-    }.task(id:month){await store.load(extra:[path])}.sheet(item:$editing){NativePartyEditor(original:$0,refreshPath:path)}.sheet(item:$export){NativeDocumentPreview(document:$0)} }
+    }.task(id:month){await store.load(extra:[path])}.sheet(item:$editing){NativePartyEditor(original:$0,refreshPath:path)}.sheet(item:$export){NativeDocumentPreview(document:$0)}.sheet(isPresented:$showContacts){NativePartyContacts(current:parties,day:selectedDay){contact in editing = .object(["id":.s("new"),"name":contact["name"],"phone":contact["phone"],"date":.s(selectedDay),"time":.s("17:00"),"status":.s("Booked"),"area":.s(contact.first("last_area","area").isEmpty ? "BR" : contact.first("last_area","area")),"count":.n(max(1,contact["last_party_count"].int))])}} }
     func move(_ offset:Int){if let date=HOPDay.parse(month),let next=HOPDay.calendar.date(byAdding:.month,value:offset,to:date){month=HOPDay.iso(next);selectedDay=month}}
+}
+struct NativePartyContacts:View {
+    @EnvironmentObject var store:NativeStore
+    @Environment(\.dismiss) var dismiss
+    var current:[J];var day:String;var choose:(J)->Void
+    @State private var search=""
+    @State private var selected:J?
+    var path:String {"/api/parties/contacts?week_start=\(HOPDay.add(HOPDay.week(HOPDay.today),7))&limit=250"}
+    var contacts:[J] {
+        var result:[String:J]=[:]
+        for contact in store.items(path,"contacts")+current {
+            let phone=contact["phone"].text.filter(\.isNumber)
+            let key=phone.isEmpty ? contact["name"].text.lowercased() : phone
+            if result[key] == nil {result[key]=contact.set(["id":.s(key)])}
+        }
+        return result.values.filter {search.isEmpty || ($0["name"].text+" "+$0["phone"].text).localizedCaseInsensitiveContains(search)}.sorted {$0["name"].text.localizedCaseInsensitiveCompare($1["name"].text) == .orderedAscending}
+    }
+    var body:some View {NavigationStack {List {
+        Section {Text("Returning customers from booking history, plus this month's bookings. Up to 250 historical contacts; no separate address book is created.").font(.subheadline).foregroundStyle(.secondary)}
+        if let failure=store.failures[path] {Section {ErrorNote(text:failure);Button("Retry"){Task {await store.load(extra:[path])}}}}
+        if contacts.isEmpty {Text(store.loading ? "Loading contacts…" : "No matching contacts")}
+        ForEach(contacts) {contact in Section {
+            HStack {PersonMark(name:contact["name"].text);VStack(alignment:.leading,spacing:6){Text(contact["name"].text).font(.headline);Text(contact["phone"].text.isEmpty ? "No phone saved" : contact["phone"].text).foregroundStyle(.secondary).textSelection(.enabled)};Spacer();Button("New booking"){selected=contact;dismiss()}.buttonStyle(.bordered)}
+            if !contact["last_party_date"].text.isEmpty {Text("\(contact["party_count"].int) bookings · Last party \(HOPDay.label(contact["last_party_date"].text))").font(.footnote).foregroundStyle(.secondary)}
+            let number=contact["phone"].text.filter { $0.isNumber || $0 == "+" }
+            if !number.isEmpty,let url=URL(string:"tel:\(number)") {Link(destination:url){Label("Call customer",systemImage:"phone")}}
+        }}
+    }.searchable(text:$search,prompt:"Name or phone").navigationTitle("Party contacts").toolbar {Button("Done"){dismiss()}}.task {await store.load(extra:[path])}.onDisappear {if let selected {choose(selected)}}} }
 }
 struct NativePartyEditor:View {
     @EnvironmentObject var store:NativeStore;@Environment(\.dismiss) var dismiss;var original:J;var refreshPath:String
@@ -59,6 +89,42 @@ struct NativePartyEditor:View {
 }
 struct NativeReports:View {
     @EnvironmentObject var store:NativeStore
-    var body:some View {NativeScreen(title:"Weekly reports",subtitle:"Scheduled pay estimates by role—not clocked hours or a payroll submission.") {WeekControl();HOPPanel(title:"Scheduled labor") {ForEach(store.employees){person in let values=labor(person);if values.0>0 {DetailPair(title:person.displayName+" · "+String(format:"%.1f hours",values.0),value:HOPMoney.show(values.1))}};Divider();Text("Weekly estimated pay: "+HOPMoney.show(store.employees.map {labor($0).1}.reduce(0,+))).font(.title2.bold())};HOPPanel(title:"Invoices issued this week") {let docs=store.items("/api/invoices","invoices").filter {let date=String($0["issue_date"].text.prefix(10));return date>=store.week && date<=HOPDay.add(store.week,6) && $0["document_type"].text != "quote" && $0.statusText != "void"};ForEach(docs){DetailPair(title:$0["customer_name"].text,value:HOPMoney.show($0["total_cents"].int))};Divider();Text("Total: "+HOPMoney.show(docs.map {$0["total_cents"].int}.reduce(0,+))).font(.title2.bold())}} }
-    func labor(_ person:J)->(Double,Int) {let schedule=store.schedule("published");var hours:Double=0,pay=0;for entry in schedule["entries"].array.filter({$0["employee_id"].text == person.id}){func mins(_ s:String)->Double{let p=s.split(separator:":");return p.count>=2 ? (Double(p[0]) ?? 0)*60+(Double(p[1]) ?? 0) : 0};let duration=max(0,mins(entry["end_time"].text)-mins(entry["start_time"].text))/60;let role=schedule["rows"].array.first {$0.id == entry["row_id"].text}?["role_group"].text ?? person["role"].text;let rate=person["role_pay_rates"][role].isNull ? person["pay_rate_cents"].int : person["role_pay_rates"][role].int;hours += duration;pay += HOPMoney.round(duration*Double(rate))};return(hours,pay)}
+    var schedule:J {store.schedule("published")}
+    var labor:[LaborLine] {LaborLine.make(schedule:schedule,employees:store.employees)}
+    var hours:Double {labor.map(\.hours).reduce(0,+)}
+    var pay:Int {labor.map(\.pay).reduce(0,+)}
+    var docs:[J] {store.items("/api/invoices","invoices").filter {let date=String($0["issue_date"].text.prefix(10));return date>=store.week && date<=HOPDay.add(store.week,6) && $0["document_type"].text.lowercased() != "quote" && !["void","cancelled","archived"].contains($0.statusText.lowercased())}}
+    var invoiceTotal:Int {docs.map {$0["total_cents"].int}.reduce(0,+)}
+    var body:some View {NativeScreen(title:"This week, at a glance",subtitle:"Published schedule · \(HOPDay.label(store.week,"MMM d")) – \(HOPDay.label(HOPDay.add(store.week,6),"MMM d"))") {
+        WeekControl()
+        LazyVGrid(columns:[GridItem(.adaptive(minimum:200),spacing:16)],spacing:16) {
+            metric("Scheduled hours",String(format:"%.1f",hours),"clock",note:"\(labor.count) assigned shifts")
+            metric("Estimated labor",HOPMoney.show(pay),"person.2",note:"\(Set(labor.map(\.employeeID)).count) people · role-based rates")
+            metric("Invoices issued",HOPMoney.show(invoiceTotal),"doc.text",note:"\(docs.count) invoices · not revenue collected")
+        }
+        if schedule.isNull {ErrorNote(text:"No published schedule for this week. Labor estimates exclude drafts.")}
+        if labor.contains(where:{$0.missingRate}) {ErrorNote(text:"Some assigned roles have no saved pay rate. Their hours are included, but estimated labor is incomplete.")}
+        HOPPanel(title:"Staffing rhythm",subtitle:"Scheduled hours by day · Tuesday through Sunday") {
+            HStack(alignment:.bottom,spacing:18) {ForEach(HOPDay.days(store.week),id:\.self) {day in dayBar(day)}}.frame(height:170)
+        }
+        HOPPanel(title:"Team & role breakdown",subtitle:"Tap a person for shift, role, hours and hourly rate. Estimates are not clocked payroll.") {
+            if labor.isEmpty {Text("No published assignments").foregroundStyle(.secondary)}
+            ForEach(store.employees.filter {person in labor.contains {$0.employeeID == person.id}}) {person in employeeRow(person);Divider()}
+        }
+        HOPPanel(title:"Invoice activity",subtitle:"Issued during this week · quotes and voided / archived records excluded") {
+            if docs.isEmpty {Text("No invoices issued this week").foregroundStyle(.secondary)}
+            ForEach(docs) {doc in HStack(spacing:16) {Image(systemName:"doc.text").foregroundStyle(HOPStyle.teal);VStack(alignment:.leading,spacing:5) {Text(doc["customer_name"].text).font(.headline);Text(doc.first("invoice_number","document_number")+" · "+HOPDay.label(doc["issue_date"].text)).font(.caption).foregroundStyle(.secondary)};Spacer();StatusTag(value:doc.statusText);Text(HOPMoney.show(doc["total_cents"].int)).font(.headline).monospacedDigit()}.padding(.vertical,8)}
+            Divider();DetailPair(title:"Issued total",value:HOPMoney.show(invoiceTotal))
+        }
+    } }
+    private func metric(_ title:String,_ value:String,_ icon:String,note:String)->some View {HOPPanel {Label(title,systemImage:icon).font(.subheadline).foregroundStyle(HOPStyle.teal);Text(value).font(.system(size:30,weight:.bold,design:.rounded)).minimumScaleFactor(0.7).lineLimit(1);Text(note).font(.caption).foregroundStyle(.secondary)}}
+    private func dayBar(_ day:String)->some View {
+        let value=labor.filter {$0.weekday == HOPDay.weekday(day)}.map(\.hours).reduce(0,+)
+        let highest=HOPDay.days(store.week).map {d in labor.filter {$0.weekday == HOPDay.weekday(d)}.map(\.hours).reduce(0,+)}.max() ?? 1
+        return VStack(spacing:8) {Text(String(format:"%.1fh",value)).font(.caption.bold());RoundedRectangle(cornerRadius:7).fill(HOPStyle.green.gradient).frame(height:CGFloat(value/max(1,highest))*115+2);Text(HOPDay.label(day,"EEE")).font(.subheadline.bold());Text(HOPDay.label(day,"MMM d")).font(.caption).foregroundStyle(.secondary)}.frame(maxWidth:.infinity)
+    }
+    private func employeeRow(_ person:J)->some View {
+        let lines=labor.filter {$0.employeeID == person.id}
+        return DisclosureGroup {ForEach(lines) {line in HStack {VStack(alignment:.leading,spacing:4) {Text(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][max(0,min(6,line.weekday))]+" · "+line.role.capitalized+" · "+line.slot).font(.subheadline.bold());Text(String(format:"%.1fh",line.hours)+" × "+(line.missingRate ? "Rate not set" : HOPMoney.show(line.rate)+"/h")).font(.caption).foregroundStyle(.secondary)};Spacer();Text(HOPMoney.show(line.pay)).monospacedDigit()}.padding(.vertical,7)}} label:{HStack {PersonMark(name:person.displayName);VStack(alignment:.leading,spacing:4) {Text(person.displayName).font(.headline);Text(String(format:"%.1f hours",lines.map(\.hours).reduce(0,+))).font(.caption).foregroundStyle(.secondary)};Spacer();Text(HOPMoney.show(lines.map(\.pay).reduce(0,+))).font(.headline).monospacedDigit()}}.padding(.vertical,7)
+    }
 }

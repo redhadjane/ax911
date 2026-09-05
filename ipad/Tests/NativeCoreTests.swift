@@ -1,6 +1,39 @@
 import XCTest
 @testable import CommandPolicy
 final class NativeCoreTests:XCTestCase {
+    func testStandardWallBoardFitsOneLandscapePage() {
+        for counts in [Array(repeating:1,count:11),Array(repeating:1,count:3),[1,2,1,1,1,1,1,1,1,1,1]] {
+            let heights=WallBoardLayout.rowHeights(assignmentCounts:counts)
+            XCTAssertEqual(heights.reduce(0,+),WallBoardLayout.gridBottom-WallBoardLayout.gridTop,accuracy:0.01)
+            for (index,height) in heights.enumerated() {XCTAssertGreaterThanOrEqual(height,Double(max(1,counts[index])*29+7))}
+        }
+        XCTAssertEqual(WallBoardLayout.time("16:30:00"),"4:30 PM")
+        XCTAssertEqual(WallBoardLayout.time("12:00"),"12:00 PM")
+        XCTAssertEqual(WallBoardLayout.time("00:15"),"12:15 AM")
+    }
+    func testAvailabilityWeekPeriodAndMissingSubmission() {
+        let person:J = .object(["id":.s("p")]),row:J = .object(["label":.s("Host AM1"),"role_group":.s("host")])
+        let slot:J = .object(["employee_id":.s("p"),"week_start":.s("2026-09-01T00:00:00.000Z"),"day":.s("tuesday"),"shift_key":.s("am"),"status":.s("OFF")])
+        XCTAssertTrue(BoardRules.off(person,day:"2026-09-01",row:row,availability:[slot]))
+        XCTAssertEqual(BoardRules.availabilityState(person,day:"2026-09-08",row:row,availability:[slot]),"default")
+        XCTAssertFalse(BoardRules.off(person,day:"2026-09-01",row:row.set(["label":.s("PM1")]),availability:[slot]))
+        XCTAssertEqual(BoardRules.availabilityState(person,day:"2026-09-01",row:row,availability:[slot.set(["status":.s("available")])]),"available")
+        XCTAssertEqual(BoardRules.shiftKey(.object(["label":.s("FH1")]),start:"11:00"),"PM")
+    }
+    func testFloorRoleMatchesBackendRatherThanAllServers() {
+        let floor:J = .object(["label":.s("FH1"),"role_group":.s("floor")])
+        let person:J = .object(["role":.s("waitress")])
+        XCTAssertFalse(BoardRules.roleMatch(person,floor))
+        XCTAssertTrue(BoardRules.roleMatch(person.set(["secondary_roles":.array([.s("Floor Help")])]),floor))
+        XCTAssertTrue(BoardRules.roleMatch(.object(["role":.s("Manager")]),floor))
+    }
+    func testRolePayAndUnconfiguredRate() {
+        let person:J = .object(["id":.s("p"),"role_pay_rates":.object(["host":.n(1500),"waitress":.n(500)])])
+        let schedule:J = .object(["rows":.array([.object(["id":.s("r"),"role_group":.s("host"),"label":.s("AM1")])]),"entries":.array([.object(["id":.s("e"),"row_id":.s("r"),"employee_id":.s("p"),"start_time":.s("10:00"),"end_time":.s("15:00")])])
+        let line=LaborLine.make(schedule:schedule,employees:[person])[0]
+        XCTAssertEqual(line.hours,5);XCTAssertEqual(line.pay,7500);XCTAssertFalse(line.missingRate)
+        XCTAssertTrue(LaborLine.make(schedule:schedule,employees:[])[0].missingRate)
+    }
     func testTuesdayWeek() {XCTAssertEqual(HOPDay.week("2026-09-06"),"2026-09-01");XCTAssertEqual(HOPDay.week("2026-09-07"),"2026-09-01");XCTAssertEqual(HOPDay.week("2026-09-08"),"2026-09-08");XCTAssertEqual(HOPDay.days("2026-09-01").last,"2026-09-06")}
     func testDateBoundary() {XCTAssertEqual(HOPDay.add("2026-12-31",1),"2027-01-01");XCTAssertEqual(HOPDay.weekday("2026-09-17"),4);XCTAssertNil(HOPDay.parse("09/17/2026"));XCTAssertEqual(HOPDay.label("2026-09-17","EEEE"),"Thursday")}
     func testDecimalMoney() {XCTAssertEqual(HOPMoney.cents("19.99"),1999);XCTAssertEqual(HOPMoney.cents("1.005"),101);XCTAssertEqual(HOPMoney.cents("not money"),0)}

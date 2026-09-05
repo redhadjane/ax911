@@ -67,12 +67,14 @@ enum HOPMoney {
 
 enum BoardRules {
     static func roleMatch(_ employee:J,_ row:J) -> Bool {
-        let roles=([employee["role"].text]+employee["secondary_roles"].array.map(\.text)).map { $0.lowercased() }
-        let wanted=row["role_group"].text
+        func token(_ value:String)->String {value.lowercased().filter {!$0.isWhitespace && $0 != "_" && $0 != "-"}}
+        let roles=([employee["role"].text]+employee["secondary_roles"].array.map(\.text)).map(token)
+        let wanted=token(row["role_group"].text+row["label"].text)
         if roles.contains("manager") { return true }
-        if wanted == "host" { return roles.contains("host") }
-        if wanted == "floor" { return roles.contains { ["floor","support","waitress","server"].contains($0) } }
-        return roles.contains { ["waitress","server","main"].contains($0) }
+        if wanted.contains("host") {return roles.contains {$0.contains("host")}}
+        if wanted.contains("floor") || wanted.contains("fh") {return roles.contains {$0.contains("floor") || $0 == "fh"}}
+        if ["wait","main","am","pm"].contains(where:wanted.contains) {return roles.contains {$0.contains("wait") || $0.contains("server")}}
+        return true
     }
     static func entries(_ schedule:J,row:J,day:String) -> [J] { schedule["entries"].array.filter { $0["row_id"].text == row.id && $0["day_of_week"].int == HOPDay.weekday(day) } }
     static func closed(_ entries:[J]) -> Bool { !entries.contains {$0["notes"].text.contains("HOP_SLOT_ACTIVE")} && entries.contains { $0["notes"].text.contains("HOP_SLOT_INACTIVE") } }
@@ -98,14 +100,59 @@ enum BoardRules {
         return entries.contains { $0.id != candidate.id && $0["employee_id"] == candidate["employee_id"] && $0["day_of_week"] == candidate["day_of_week"] && $0["start_time"].text.prefix(5) < candidate["end_time"].text.prefix(5) && candidate["start_time"].text.prefix(5) < $0["end_time"].text.prefix(5) }
     }
     static func off(_ employee:J,day:String,row:J,availability:[J]) -> Bool {
-        let shift=row["label"].text.contains("AM") ? "AM" : "PM"
-        let dayName=HOPDay.label(day,"EEEE").lowercased()
-        return availability.contains { $0["employee_id"].text == employee.id && ($0["day"].text.lowercased().prefix(3) == dayName.prefix(3) || $0["day"].text == String(HOPDay.weekday(day))) && $0["shift_key"].text == shift && $0["status"].text == "off" }
+        availabilityState(employee,day:day,row:row,availability:availability) == "off"
+    }
+    static func shiftKey(_ row:J,start:String="")->String {
+        let text=(row["label"].text+" "+row["role_group"].text).uppercased()
+        if text.contains("AM") {return "AM"}
+        if ["PM","FH","FLOOR"].contains(where:text.contains) {return "PM"}
+        return (Int(start.prefix(2)) ?? 0)<15 ? "AM" : "PM"
+    }
+    static func availabilityState(_ employee:J,day:String,row:J,availability:[J],start:String="")->String {
+        let shift=shiftKey(row,start:start),dayName=HOPDay.label(day,"EEE").lowercased()
+        let records=availability.filter {slot in
+            let week=String(slot["week_start"].text.prefix(10))
+            return slot["employee_id"].text == employee.id && (week.isEmpty || week == HOPDay.week(day)) && (slot["day"].text.lowercased().prefix(3) == dayName.prefix(3) || slot["day"].text == String(HOPDay.weekday(day))) && slot["shift_key"].text.uppercased() == shift
+        }
+        if records.contains(where:{$0["status"].text.lowercased() == "off"}) {return "off"}
+        return records.contains(where:{$0["status"].text.lowercased() == "available"}) ? "available" : "default"
     }
     static func taskMatches(_ task:J,row:J,day:String) -> Bool {
         let role=row["role_group"].text == "host" ? "host" : row["role_group"].text == "floor" ? "support" : "main"
         let shift=row["label"].text.contains("AM") ? "AM" : "PM"
         let number=Int(row["label"].text.filter(\.isNumber)) ?? 1
         return task["status"].text != "done" && ["","all",role].contains(task["role_group"].text) && ["","all",shift].contains(task["shift"].text) && (task["day_of_week"].isNull || task["day_of_week"].int == HOPDay.weekday(day)) && (task["shift_number"].isNull || task["shift_number"].int == number)
+    }
+}
+
+enum WallBoardLayout {
+    // Letter landscape: compact header, optional party ribbon, grid, footer.
+    static let gridTop:Double=158
+    static let gridBottom:Double=574
+    static func rowHeights(assignmentCounts:[Int])->[Double] {
+        let minimum=assignmentCounts.map {Double(max(1,$0)*29+7)}
+        let spare=max(0,gridBottom-gridTop-minimum.reduce(0,+))
+        return minimum.map {$0+(minimum.isEmpty ? 0 : spare/Double(minimum.count))}
+    }
+    static func time(_ raw:String)->String {
+        let parts=raw.split(separator:":");guard parts.count>=2,let hour=Int(parts[0]),let minute=Int(parts[1]) else{return raw}
+        return "\(hour%12 == 0 ? 12 : hour%12):\(String(format:"%02d",minute)) \(hour<12 ? "AM" : "PM")"
+    }
+}
+
+struct LaborLine:Identifiable {
+    var id:String;var employeeID:String;var weekday:Int;var role:String;var slot:String
+    var hours:Double;var rate:Int;var missingRate:Bool
+    var pay:Int {HOPMoney.round(hours*Double(rate))}
+    static func make(schedule:J,employees:[J])->[LaborLine] {
+        schedule["entries"].array.enumerated().compactMap {index,entry in
+            guard !entry["employee_id"].text.isEmpty else {return nil}
+            let person=employees.first {$0.id == entry["employee_id"].text} ?? .null
+            let row=schedule["rows"].array.first {$0.id == entry["row_id"].text} ?? .null
+            let role=row["role_group"].text.isEmpty ? person["role"].text : row["role_group"].text
+            let rate=person["role_pay_rates"][role].isNull ? person["pay_rate_cents"] : person["role_pay_rates"][role]
+            func minutes(_ s:String)->Double {let p=s.split(separator:":");return p.count>=2 ? (Double(p[0]) ?? 0)*60+(Double(p[1]) ?? 0) : 0}
+            return LaborLine(id:entry.id.isEmpty ? String(index) : entry.id,employeeID:entry["employee_id"].text,weekday:entry["day_of_week"].int,role:role,slot:row["label"].text,hours:max(0,minutes(entry["end_time"].text)-minutes(entry["start_time"].text))/60,rate:rate.int,missingRate:rate.isNull)
+        }
     }
 }

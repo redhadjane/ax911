@@ -29,7 +29,9 @@ final class NativeCoreTests:XCTestCase {
     }
     func testRolePayAndUnconfiguredRate() {
         let person:J = .object(["id":.s("p"),"role_pay_rates":.object(["host":.n(1500),"waitress":.n(500)])])
-        let schedule:J = .object(["rows":.array([.object(["id":.s("r"),"role_group":.s("host"),"label":.s("AM1")])]),"entries":.array([.object(["id":.s("e"),"row_id":.s("r"),"employee_id":.s("p"),"start_time":.s("10:00"),"end_time":.s("15:00")])])
+        let row:J = .object(["id":.s("r"),"role_group":.s("host"),"label":.s("AM1")])
+        let entry:J = .object(["id":.s("e"),"row_id":.s("r"),"employee_id":.s("p"),"start_time":.s("10:00"),"end_time":.s("15:00")])
+        let schedule:J = .object(["rows":.array([row]),"entries":.array([entry])])
         let line=LaborLine.make(schedule:schedule,employees:[person])[0]
         XCTAssertEqual(line.hours,5);XCTAssertEqual(line.pay,7500);XCTAssertFalse(line.missingRate)
         XCTAssertTrue(LaborLine.make(schedule:schedule,employees:[])[0].missingRate)

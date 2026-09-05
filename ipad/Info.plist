@@ -12,6 +12,7 @@
 <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
 <key>LSRequiresIPhoneOS</key><true/>
 <key>UILaunchScreen</key><dict/>
+<key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
 <key>UIApplicationSupportsIndirectInputEvents</key><true/>
 <key>UIRequiredDeviceCapabilities</key><array><string>arm64</string></array>
 <key>UISupportedInterfaceOrientations~ipad</key><array>

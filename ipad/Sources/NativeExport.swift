@@ -21,7 +21,7 @@ struct NativeDocumentPreview:View {
         ToolbarItem(placement:.cancellationAction) {Button("Done"){dismiss()}}
         ToolbarItemGroup(placement:.primaryAction) {Button {do {let safe=document.title.filter {$0.isLetter || $0.isNumber || $0 == " " || $0 == "-"};let url=FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString)-\(safe).pdf");try document.data.write(to:url,options:.atomic);shareURL=url;sharing=true}catch {self.error=error.localizedDescription}} label:{Label("Share PDF",systemImage:"square.and.arrow.up")};Button {let print=UIPrintInteractionController.shared;let info=UIPrintInfo(dictionary:nil);info.jobName=document.title;info.outputType = .general;print.printInfo=info;print.printingItem=document.data;print.present(animated:true)} label:{Label("AirPrint",systemImage:"printer")}}
     }.sheet(isPresented:$sharing,onDismiss:{if let shareURL {try? FileManager.default.removeItem(at:shareURL)};shareURL=nil}) {if let shareURL {NativeShare(items:[shareURL])}}
-    .alert("Export",isPresented:Binding(get:{error != nil},set:{if !$0{error=nil}})) {Button("OK"){error=nil}} message:{Text(error ?? "")}}
+    .alert("Export",isPresented:Binding(get:{error != nil},set:{if !$0{error=nil}})) {Button("OK"){error=nil}} message:{Text(error ?? "")}}}
 }
 @MainActor enum NativePDF {
     static let ink=UIColor(red:16/255,green:36/255,blue:31/255,alpha:1)

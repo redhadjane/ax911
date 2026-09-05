@@ -30,6 +30,7 @@ enum J: Codable, Equatable, Sendable, Identifiable {
     static func s(_ s:String) -> J { .string(s) }
     static func n(_ n:Int) -> J { .number(Double(n)) }
     var pretty:String { guard let data = try? JSONEncoder().encode(self) else { return "" }; return String(data:data,encoding:.utf8) ?? "" }
+    var humanText:String {switch self {case .array(let values):return values.map(\.humanText).joined(separator:"\n");case .object(let values):return values.keys.sorted().map {$0.replacingOccurrences(of:"_",with:" ").capitalized+": "+(values[$0]?.humanText ?? "")}.joined(separator:"\n");default:return text}}
 }
 
 enum HOPDay {
@@ -93,6 +94,6 @@ enum BoardRules {
         let role=row["role_group"].text == "host" ? "host" : row["role_group"].text == "floor" ? "support" : "main"
         let shift=row["label"].text.contains("AM") ? "AM" : "PM"
         let number=Int(row["label"].text.filter(\.isNumber)) ?? 1
-        return ["all",role].contains(task["role_group"].text) && ["all",shift].contains(task["shift"].text) && (task["day_of_week"].isNull || task["day_of_week"].int == HOPDay.weekday(day)) && (task["shift_number"].isNull || task["shift_number"].int == number)
+        return task["status"].text != "done" && ["","all",role].contains(task["role_group"].text) && ["","all",shift].contains(task["shift"].text) && (task["day_of_week"].isNull || task["day_of_week"].int == HOPDay.weekday(day)) && (task["shift_number"].isNull || task["shift_number"].int == number)
     }
 }

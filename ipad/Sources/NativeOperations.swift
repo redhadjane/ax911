@@ -16,7 +16,10 @@ struct NativeHome:View {
 }
 struct NativeTasks:View {
     @EnvironmentObject var store:NativeStore
-    @State private var board="Main",library=false,editing:J?,export:NativeDocument?
+    @State private var board="Main"
+    @State private var library=false
+    @State private var editing:J?
+    @State private var export:NativeDocument?
     var schedule:J {store.schedule("published").isNull ? store.schedule("draft") : store.schedule("published")}
     var rows:[J] {schedule["rows"].array.filter {board == "Host" ? $0["role_group"].text == "host" : board == "Floor" ? $0["role_group"].text == "floor" : $0["role_group"].text == "waitress"}.sorted {$0["sort_order"].int<$1["sort_order"].int}}
     var tasks:[J] {store.items("/api/tasks","tasks")}
@@ -29,12 +32,16 @@ struct NativeTasks:View {
 }
 struct NativeTaskEditor:View {
     @EnvironmentObject var store:NativeStore;@Environment(\.dismiss) var dismiss;var original:J
-    @State private var task:J = .null,confirm=false
+    @State private var task:J = .null
+    @State private var confirm=false
     var body:some View {NavigationStack {Form {Section {RecordFields(record:$task,fields:[.init(key:"title",title:"Task name"),.init(key:"area",title:"Area"),.init(key:"role_group",title:"Role",kind:.choice(["all","main","host","support"])),.init(key:"shift",title:"Shift",kind:.choice(["all","AM","PM"])),.init(key:"notes",title:"Instructions",kind:.paragraph)])};Section("Recurring assignment") {Picker("Day",selection:Binding(get:{task["day_of_week"].isNull ? -1 : task["day_of_week"].int},set:{task["day_of_week"] = $0 == -1 ? .null : .n($0)})){Text("Every day").tag(-1);ForEach([2,3,4,5,6,0],id:\.self){Text(["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][$0]).tag($0)}};Picker("Slot",selection:Binding(get:{task["shift_number"].isNull ? 0 : task["shift_number"].int},set:{task["shift_number"] = $0 == 0 ? .null : .n($0)})){Text("All slots").tag(0);ForEach(1...4,id:\.self){Text("Slot \($0)").tag($0)}};Text("This changes the recurring task definition, not just one employee's checklist.").font(.footnote).foregroundStyle(.secondary)};if original.id != "new" {Section {Button("Delete library task",role:.destructive){confirm=true}}}}.navigationTitle("Shift task").toolbar {ToolbarItem(placement:.cancellationAction){Button("Cancel"){dismiss()}};ToolbarItem(placement:.confirmationAction){Button("Save"){Task {do {let new=original.id == "new";_ = try await store.send(new ? "/api/tasks" : "/api/tasks/\(original.id)",method:new ? "POST" : "PATCH",body:task);await store.load();dismiss()}catch {store.report(error)}}}.disabled(store.saving || task["title"].text.isEmpty)}}.task {task=original}.confirmationDialog("Delete this recurring task?",isPresented:$confirm,titleVisibility:.visible){Button("Delete",role:.destructive){Task {do {_ = try await store.send("/api/tasks/\(original.id)",method:"DELETE");await store.load();dismiss()}catch {store.report(error)}}}}} }
 }
 struct NativeParties:View {
     @EnvironmentObject var store:NativeStore
-    @State private var month=String(HOPDay.today.prefix(7))+"-01",selectedDay=HOPDay.today,editing:J?,export:NativeDocument?
+    @State private var month=String(HOPDay.today.prefix(7))+"-01"
+    @State private var selectedDay=HOPDay.today
+    @State private var editing:J?
+    @State private var export:NativeDocument?
     var monthEnd:String {guard let date=HOPDay.parse(month),let next=HOPDay.calendar.date(byAdding:.month,value:1,to:date) else {return month};return HOPDay.add(HOPDay.iso(next),-1)}
     var path:String {"/api/parties?from=\(month)&to=\(monthEnd)"}
     var parties:[J] {store.items(path,"parties")}

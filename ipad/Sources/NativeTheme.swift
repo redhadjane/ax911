@@ -122,7 +122,8 @@ struct NativeRoot:View {
 }
 private struct NativeLogin:View {
     @EnvironmentObject var store:NativeStore
-    @State private var name="",pin=""
+    @State private var name=""
+    @State private var pin=""
     var body:some View { ZStack { HOPStyle.cream.ignoresSafeArea(); VStack(spacing:28) {
         VStack(spacing:8) { Text("HOP").font(.system(size:66,weight:.bold,design:.serif)); Text("Your restaurant. At a glance.").font(.title2) }.foregroundStyle(HOPStyle.green)
         HOPPanel(title:"Welcome to Command Center",subtitle:"Sign in with your existing manager account.") {

@@ -2,7 +2,9 @@ import SwiftUI
 
 struct NativeInvoices:View {
     @EnvironmentObject var store:NativeStore
-    @State private var search="",filter="All",opening=false
+    @State private var search=""
+    @State private var filter="All"
+    @State private var opening=false
     @State private var editing:J?
     var records:[J] {store.items("/api/invoices","invoices").filter {($0.displayName+" "+$0.first("invoice_number","customer_name")).localizedCaseInsensitiveContains(search) || search.isEmpty}.filter {filter == "All" || $0["document_type"].text == filter.lowercased()}}
     var body:some View {NativeScreen(title:"Invoices & quotes",subtitle:"One workspace. Regular menu, catering and custom items, with an exact PDF preview.") {
@@ -17,14 +19,17 @@ struct NativeInvoiceStudio:View {
     @EnvironmentObject var store:NativeStore;@Environment(\.dismiss) var dismiss
     var original:J
     @State private var doc:J = .null
-    @State private var catalog=false,preview=false,discard=false,archive=false
+    @State private var catalog=false
+    @State private var preview=false
+    @State private var discard=false
+    @State private var archive=false
     @State private var changed=false
     var isNew:Bool {original.id == "new"}
     var document:NativeDocument {NativePDF.invoice(doc)}
     var locked:Bool {doc["is_locked"].truth || doc["locked"].truth}
     var body:some View {NavigationStack {GeometryReader {geometry in
         HStack(spacing:0) {Form {
-            Section("Document") {RecordFields(record:$doc,fields:[.init(key:"document_type",title:"Type",kind:.choice(["invoice","quote"])),.init(key:"status",title:"Status",kind:.choice(["draft","sent","partial","paid","void"])),.init(key:"issue_date",title:"Issued",kind:.date),.init(key:"due_date",title:"Due",kind:.date),.init(key:"event_date",title:"Event date",kind:.date)])}
+            Section("Document") {RecordFields(record:$doc,fields:[.init(key:"document_type",title:"Type",kind:.choice(["invoice","quote"])),.init(key:"status",title:"Status",kind:.choice(["draft","printed","sent","partial","paid","void"])),.init(key:"issue_date",title:"Issued",kind:.date),.init(key:"due_date",title:"Due",kind:.date),.init(key:"event_date",title:"Event date",kind:.date)])}
             Section("Customer") {RecordFields(record:$doc,fields:[.init(key:"customer_name",title:"Customer / organization"),.init(key:"contact_name",title:"Contact"),.init(key:"customer_phone",title:"Phone"),.init(key:"customer_email",title:"Email"),.init(key:"customer_address",title:"Billing / delivery address",kind:.paragraph)])}
             Section {ForEach(Array(doc["items"].array.enumerated()),id:\.offset) {index,item in invoiceLine(index,item)};HStack {Button {catalog=true} label:{Label("From menu",systemImage:"fork.knife")}.buttonStyle(.bordered);Button {append(.object(["description":.s(""),"quantity":.n(1),"unit_price_cents":.n(0),"source_type":.s("custom")]))} label:{Label("Custom line",systemImage:"plus")}.buttonStyle(.bordered)}} header:{Text("Items")} footer:{Text("Edit quantity, description and price directly. No typed separators or special formatting.")}
             Section("Pricing adjustments") {RecordFields(record:$doc,fields:[.init(key:"discount_cents",title:"Discount ($)",kind:.money),.init(key:"discount_basis_points",title:"Discount (%)",kind:.percent),.init(key:"tax_rate_basis_points",title:"Sales tax (%)",kind:.percent),.init(key:"delivery_fee_cents",title:"Delivery ($)",kind:.money),.init(key:"gratuity_cents",title:"Gratuity ($)",kind:.money),.init(key:"other_fee_cents",title:"Other charge ($)",kind:.money),.init(key:"card_fee_basis_points",title:"Card fee (%)",kind:.percent),.init(key:"amount_paid_cents",title:"Amount paid ($)",kind:.money),.init(key:"payment_method",title:"Payment",kind:.choice(["not-set","cash","check","card","online"]))]);Text("Delivery appears as a clearly labeled charge in the totals. Do not also add it as an item.").font(.footnote).foregroundStyle(.secondary)}
@@ -53,7 +58,8 @@ struct NativeInvoiceStudio:View {
 struct NativeInvoiceCatalog:View {
     @EnvironmentObject var store:NativeStore;@Environment(\.dismiss) var dismiss
     var add:(J)->Void
-    @State private var category="Regular",search=""
+    @State private var category="Regular"
+    @State private var search=""
     var menu:[J] {store.items("/api/menu/items","items","menu_items").filter {item in let cat=store.items("/api/menu/categories","categories").first {$0.id == item["category_id"].text};let catering=(item.first("category_name","category_slug")+" "+(cat?.first("slug","name") ?? "")).lowercased().contains("cater");return (category == "Catering" ? catering : !catering) && (search.isEmpty || item["name"].text.localizedCaseInsensitiveContains(search))}}
     var body:some View {NavigationStack {List {Section {Picker("Menu",selection:$category){Text("Regular menu").tag("Regular");Text("Catering menu").tag("Catering")}.pickerStyle(.segmented)};ForEach(menu) {item in
         let sizes=item["size_prices"].object.sorted {$0.key<$1.key}

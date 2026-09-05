@@ -3,9 +3,12 @@ import SwiftUI
 struct ShiftSelection:Identifiable { var row:J; var day:String; var id:String {row.id+day} }
 struct NativeSchedule:View {
     @EnvironmentObject var store:NativeStore
-    @State private var mode="published",board="Main"
+    @State private var mode="published"
+    @State private var board="Main"
     @State private var selected:ShiftSelection?
-    @State private var publish=false,confirmCopy=false,export:NativeDocument?
+    @State private var publish=false
+    @State private var confirmCopy=false
+    @State private var export:NativeDocument?
     var schedule:J {store.schedule(mode)}
     var rows:[J] {schedule["rows"].array.filter {board == "Host" ? $0["role_group"].text == "host" : $0["role_group"].text != "host"}.sorted {$0["sort_order"].int < $1["sort_order"].int}}
     var body:some View { VStack(spacing:0) {
@@ -48,10 +51,11 @@ struct NativeSchedule:View {
 struct NativeShiftEditor:View {
     @EnvironmentObject var store:NativeStore; @Environment(\.dismiss) var dismiss
     var selection:ShiftSelection; var schedule:J; var editable:Bool
-    @State private var entry:J = .object([:]); @State private var showAll=false,closeConfirm=false
+    @State private var entry:J = .object([:]); @State private var showAll=false
+    @State private var closeConfirm=false
     var entries:[J] {BoardRules.entries(schedule,row:selection.row,day:selection.day)}
     var assigned:[J] {entries.filter {!$0["employee_id"].text.isEmpty}}
-    var candidates:[J] {store.employees.filter { $0["status"].text != "inactive" && (showAll || (BoardRules.roleMatch($0,selection.row) && !BoardRules.off($0,day:selection.day,row:selection.row,availability:store.available))) }}
+    var candidates:[J] {store.employees.filter { $0.id == entry["employee_id"].text || ($0["status"].text == "active" && (showAll || (BoardRules.roleMatch($0,selection.row) && !BoardRules.off($0,day:selection.day,row:selection.row,availability:store.available)))) }}
     var candidate:J {entry.set(["row_id":.s(selection.row.id),"day_of_week":.n(HOPDay.weekday(selection.day)),"role":selection.row["role_group"],"notes":.null,"updated_by":.s(store.manager.id)])}
     var overlap:Bool {BoardRules.overlaps(candidate,schedule["entries"].array)}
     var body:some View {NavigationStack {Form {
@@ -66,8 +70,8 @@ struct NativeShiftEditor:View {
             Button("Save assignment") {save(candidate)}.disabled(store.saving || overlap || entry["end_time"].text <= entry["start_time"].text)
             Button("Add another employee") {reset()}
         }
-        Section {Button(BoardRules.closed(entries) ? "Reopen cell" : "Close cell",role:.destructive) {closeConfirm=true}; if !entry.id.isEmpty {Button("Remove selected assignment",role:.destructive) {Task {do {_ = try await store.send("/api/schedules/draft/\(schedule.id)/entries/\(entry.id)",method:"DELETE");await store.load();dismiss()}catch {store.report(error)}}}} }
-    }.navigationTitle(selection.row["label"].text).toolbar {Button("Done") {dismiss()}}.task {if let first=assigned.first {entry=first}else{reset()}}
+        Section {Button(BoardRules.closed(entries) ? "Reopen cell" : "Close cell",role:.destructive) {closeConfirm=true}.disabled(assigned.count>1);if assigned.count>1 {Text("Remove extra assignments before closing this cell.").font(.footnote)}; if !entry.id.isEmpty {Button("Remove selected assignment",role:.destructive) {Task {do {_ = try await store.send("/api/schedules/draft/\(schedule.id)/entries/\(entry.id)",method:"DELETE");await store.load();dismiss()}catch {store.report(error)}}}} }
+    }}.navigationTitle(selection.row["label"].text).toolbar {Button("Done") {dismiss()}}.task {if let first=assigned.first {entry=first}else{reset();entry["id"]=entries.first?["id"] ?? .null}}
     .confirmationDialog("\(BoardRules.closed(entries) ? "Reopen" : "Close") this cell? Closing removes its assignment.",isPresented:$closeConfirm,titleVisibility:.visible) {Button("Confirm",role:.destructive) {save(candidate.set(["employee_id":.null,"start_time":.null,"end_time":.null,"notes":.s(BoardRules.closed(entries) ? "HOP_SLOT_ACTIVE" : "HOP_SLOT_INACTIVE")]))}} }
     }
     private func reset() {let times=BoardRules.defaults(selection.row);entry = .object(["id":.null,"employee_id":.s(""),"start_time":.s(times.0),"end_time":.s(times.1)])}
@@ -76,6 +80,9 @@ struct NativeShiftEditor:View {
 }
 struct NativePublish:View {
     @EnvironmentObject var store:NativeStore; @Environment(\.dismiss) var dismiss; var schedule:J
-    @State private var note="",pin="",conflict="",canOverride=false
+    @State private var note=""
+    @State private var pin=""
+    @State private var conflict=""
+    @State private var canOverride=false
     var body:some View {NavigationStack {Form {Section {Label("Publish to the employee app",systemImage:"person.2.wave.2").font(.headline);Text("This makes the draft visible to staff. Review the week and assignments before continuing.");Text(HOPDay.label(store.week)+" · \(schedule["entries"].array.filter {!$0["employee_id"].text.isEmpty}.count) assignments")};Section("Publish note") {TextEditor(text:$note).frame(height:90)};if !conflict.isEmpty {Section {ErrorNote(text:conflict)}};if canOverride {Section("Manager-authorized exception") {SecureField("Your manager PIN",text:$pin).keyboardType(.numberPad);Text("Only overridable conflicts can be approved. Genuine overlapping shifts remain blocked.")}}}.navigationTitle("Review & publish").toolbar {ToolbarItem(placement:.cancellationAction){Button("Cancel"){dismiss()}};ToolbarItem(placement:.confirmationAction){Button(canOverride ? "Override & publish" : "Publish") {Task {do {_ = try await store.send("/api/schedules/\(schedule.id)/publish",body:.object(["publish_notes":.s(note),"override_conflicts":.bool(canOverride),"manager_pin":.s(pin)]));pin="";await store.load();dismiss()}catch {pin="";conflict=error.localizedDescription;canOverride=(error as? NativeFailure)?.payload["can_override"].truth ?? false}}}.disabled(store.saving || (canOverride && pin.isEmpty))}}} }
 }

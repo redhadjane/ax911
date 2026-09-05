@@ -1,0 +1,36 @@
+name: HOP Club iPhone build
+on:
+  push:
+    branches: [hopclub-ios]
+    paths: ['club-ios/**', '.github/workflows/hopclub-ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hopclub-ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: macos-15
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: club-ios
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apple toolchain
+        run: xcodebuild -version
+      - name: Customer session, menu and QR tests
+        run: swift test
+      - name: Customer boundary and native package checks
+        run: node --test scripts/contracts.test.cjs
+      - name: Compile device app and package unsigned IPA (no simulator)
+        run: bash scripts/build-ipa.sh
+      - name: Upload iPhone IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOPClub-iPhone-unsigned-ipa
+          path: club-ios/build/HOPClub-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14

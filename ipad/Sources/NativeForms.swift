@@ -1,6 +1,19 @@
 import SwiftUI
 import PhotosUI
 
+// Keep the user's in-progress decimal text; format only after leaving the field.
+struct NativeNumberField:View {
+    var placeholder:String; @Binding var value:String
+    @State private var input=""; @FocusState private var focused:Bool
+    init(_ placeholder:String,text:Binding<String>) {self.placeholder=placeholder;self._value=text}
+    var body:some View {TextField(placeholder,text:$input).focused($focused)
+        .onAppear {input=value}
+        .onChange(of:input){_,text in if focused {value=text}}
+        .onChange(of:value){_,text in if !focused {input=text}}
+        .onChange(of:focused){_,active in if !active {input=value}}
+    }
+}
+
 struct NativeField:Identifiable {
     var key:String; var title:String; var kind:Kind = .text
     enum Kind { case text,paragraph,number,date,toggle,choice([String]),money,percent }
@@ -16,8 +29,8 @@ struct RecordFields:View {
         case .choice(let choices): Picker(field.title,selection:text(field.key)) { ForEach(choices,id:\.self) { Text($0.replacingOccurrences(of:"_",with:" ").capitalized).tag($0) } }
         case .paragraph: VStack(alignment:.leading) { Text(field.title).font(.subheadline).foregroundStyle(.secondary); TextEditor(text:text(field.key)).frame(minHeight:90) }
         case .date: DatePicker(field.title,selection:Binding(get:{HOPDay.parse(record[field.key].text) ?? Date()},set:{record[field.key] = .s(HOPDay.iso($0))}),displayedComponents:.date).environment(\.timeZone,HOPDay.calendar.timeZone)
-        case .money,.percent: LabeledContent(field.title) { TextField("0.00",text:Binding(get:{HOPMoney.dollars(record[field.key].int)},set:{record[field.key] = .n(HOPMoney.cents($0))})).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(maxWidth:160) }
-        case .number: LabeledContent(field.title) { TextField("0",text:Binding(get:{record[field.key].text},set:{record[field.key] = .number(Double($0) ?? 0)})).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(maxWidth:160) }
+        case .money,.percent: LabeledContent(field.title) { NativeNumberField("0.00",text:Binding(get:{HOPMoney.dollars(record[field.key].int)},set:{record[field.key] = .n(HOPMoney.cents($0))})).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(maxWidth:160) }
+        case .number: LabeledContent(field.title) { NativeNumberField("0",text:Binding(get:{record[field.key].text},set:{record[field.key] = .number(Double($0) ?? 0)})).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(maxWidth:160) }
         case .text: LabeledContent(field.title) { TextField(field.title,text:text(field.key)).multilineTextAlignment(.trailing) }
         }
     } }

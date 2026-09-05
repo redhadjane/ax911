@@ -1,4 +1,5 @@
 import SwiftUI
+import AudioToolbox
 
 enum HOPStyle {
     static let green=Color(red:15/255,green:91/255,blue:76/255)
@@ -47,6 +48,9 @@ extension J {
 struct NativeRoot:View {
     @StateObject private var store=NativeStore()
     @State private var selection:NativeModule? = .home
+    @AppStorage("hop.ipad.theme") private var savedTheme="system"
+    @AppStorage("hop.ipad.sound") private var sound=true
+    @State private var incoming:J?
     @Environment(\.scenePhase) private var phase
     var body:some View {
         Group {
@@ -56,7 +60,11 @@ struct NativeRoot:View {
         }
         .tint(HOPStyle.green)
         .preferredColorScheme(store.theme == "dark" ? .dark : store.theme == "light" ? .light : nil)
-        .task { await store.restore() }
+        .task { store.theme=savedTheme; await store.restore() }
+        .onChange(of:store.notifications) { old,new in
+            guard !old.isEmpty else {return};let known=Set(old.map(\.id))
+            if let note=new.first(where:{!known.contains($0.id) && $0["read_at"].isNull}) {incoming=note;if sound {AudioServicesPlaySystemSound(1007)}}
+        }
         .alert("HOP needs your attention",isPresented:Binding(get:{store.error != nil},set:{ if !$0 {store.error=nil} })) { Button("OK",role:.cancel) { store.error=nil } } message: { Text(store.error ?? "") }
         .overlay { if phase != .active { ZStack { Color(.systemBackground); VStack(spacing:12) { Image(systemName:"lock.shield").font(.largeTitle); Text("HOP Command Center").font(.title2.bold()) } }.ignoresSafeArea() } }
     }
@@ -79,7 +87,8 @@ struct NativeRoot:View {
                             Menu { Text("\(store.manager.displayName) · Manager"); Text("Native iPad · 0.2.0"); Button("Sign out",role:.destructive) { store.logout() } } label: { Label(store.manager.displayName.isEmpty ? "Manager" : store.manager.displayName,systemImage:"person.crop.circle") }
                         }
                     }
-                    .safeAreaInset(edge:.top) { if !store.failures.isEmpty { ErrorNote(text:"Some data could not refresh. \(store.failures.values.first ?? "")").padding(.horizontal) } }
+                    .safeAreaInset(edge:.top) { if let failure=store.paths(for:store.module).compactMap({store.failures[$0]}).first { ErrorNote(text:"Some data could not refresh. \(failure)").padding(.horizontal) } }
+                    .overlay(alignment:.bottomTrailing) {if let incoming {HOPPanel {HStack {Image(systemName:"bell.badge.fill").foregroundStyle(HOPStyle.red);Text(incoming["title"].text).font(.headline);Spacer();Button {self.incoming=nil}label:{Image(systemName:"xmark")}};Text(incoming.first("message","body")).font(.subheadline).lineLimit(3);Button("Open notifications"){self.incoming=nil;store.module = .notifications}.buttonStyle(.borderedProminent)}.frame(maxWidth:360).padding(20).shadow(color:.black.opacity(0.14),radius:20)}}
                     .safeAreaInset(edge:.bottom) { if let notice=store.notice { HStack { Label(notice,systemImage:"checkmark.circle.fill"); Spacer(); Button {store.notice=nil} label:{Image(systemName:"xmark")} }.font(.subheadline).padding(14).background(.regularMaterial).task(id:notice) { try? await Task.sleep(nanoseconds:5_000_000_000); if store.notice == notice {store.notice=nil} } } }
             }
         }.navigationSplitViewStyle(.balanced)

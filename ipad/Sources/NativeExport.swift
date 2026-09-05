@@ -56,18 +56,41 @@ struct NativeDocumentPreview:View {
     static func schedule(_ schedule:J,week:String,rows:[J],employees:[J],tasks:[J]?=nil)->NativeDocument {
         let title=tasks == nil ? "Weekly schedule" : "Shift task board"
         let data=UIGraphicsPDFRenderer(bounds:CGRect(x:0,y:0,width:792,height:612)).pdfData {ctx in
-            let chunks=stride(from:0,to:max(1,rows.count),by:tasks == nil ? 11 : 5)
-            for start in chunks {ctx.beginPage();header(title,subtitle:"\(HOPDay.label(week)) – \(HOPDay.label(HOPDay.add(week,5))) · \(schedule.statusText.capitalized)",width:792);let days=HOPDay.days(week),height:CGFloat=tasks == nil ? 37 : 78
-                for (i,day) in days.enumerated(){text(HOPDay.label(day,"EEE · MMM d"),CGRect(x:120+CGFloat(i)*106,y:135,width:104,height:20),size:10,bold:true)}
-                for (index,row) in rows.dropFirst(start).prefix(tasks == nil ? 11 : 5).enumerated(){let y=CGFloat(162)+CGFloat(index)*height;let color=row["role_group"].text == "floor" ? UIColor.systemGray : row["label"].text.contains("AM") ? UIColor.systemBlue : green;fill(CGRect(x:36,y:y,width:720,height:height-2),color.withAlphaComponent(0.07));text(row["label"].text,CGRect(x:43,y:y+8,width:73,height:25),size:11,bold:true)
-                    for (i,day) in days.enumerated(){let entries=BoardRules.entries(schedule,row:row,day:day);var lines:[String]=[];if let tasks {lines=tasks.filter {BoardRules.taskMatches($0,row:row,day:day)}.map {"☐ "+$0["title"].text}}else {lines=entries.filter {!$0["employee_id"].text.isEmpty}.map {entry in let name=employees.first {$0.id == entry["employee_id"].text}?.displayName ?? "Unknown";let double=schedule["entries"].array.filter {$0["employee_id"] == entry["employee_id"] && $0["day_of_week"] == entry["day_of_week"]}.count>1;return "\(name)\(double ? " ×2" : "")\n\(String(entry["start_time"].text.prefix(5)))–\(String(entry["end_time"].text.prefix(5)))"}};text(lines.isEmpty ? "—" : lines.joined(separator:"\n"),CGRect(x:124+CGFloat(i)*106,y:y+5,width:98,height:height-8),size:tasks == nil ? 9 : 9,bold:tasks == nil)}
-                };text("HOP · \(title) · Generated \(HOPDay.today)",CGRect(x:36,y:585,width:720,height:15),size:8)
+            let days=HOPDay.days(week);var y:CGFloat=162
+            func begin() {ctx.beginPage();header(title,subtitle:"\(HOPDay.label(week)) – \(HOPDay.label(HOPDay.add(week,5))) · \(schedule.statusText.capitalized)",width:792);for (i,day) in days.enumerated(){text(HOPDay.label(day,"EEE · MMM d"),CGRect(x:120+CGFloat(i)*106,y:135,width:104,height:20),size:10,bold:true)};text("HOP · \(title) · Generated \(HOPDay.today)",CGRect(x:36,y:585,width:720,height:15),size:8);y=162}
+            begin()
+            for row in rows {
+                let columns:[[String]]=days.map {day in
+                    if let tasks {return tasks.filter {BoardRules.taskMatches($0,row:row,day:day)}.flatMap {wrap("☐ "+$0["title"].text,width:96,size:9)}}
+                    return BoardRules.entries(schedule,row:row,day:day).filter {!$0["employee_id"].text.isEmpty}.flatMap {entry -> [String] in
+                        let name=employees.first {$0.id == entry["employee_id"].text}?.displayName ?? "Unknown"
+                        let double=schedule["entries"].array.filter {$0["employee_id"] == entry["employee_id"] && $0["day_of_week"] == entry["day_of_week"]}.count>1
+                        return wrap(name+(double ? " ×2" : ""),width:96,size:9)+["\(String(entry["start_time"].text.prefix(5)))–\(String(entry["end_time"].text.prefix(5)))"]
+                    }
+                }
+                let longest=max(1,columns.map(\.count).max() ?? 1)
+                for start in stride(from:0,to:longest,by:30) {
+                    let count=min(30,longest-start),height=max(tasks == nil ? CGFloat(37) : 64,CGFloat(count)*12+16)
+                    if y+height>572 {begin()}
+                    let color=row["role_group"].text == "floor" ? UIColor.systemGray : row["label"].text.contains("AM") ? UIColor.systemBlue : green
+                    fill(CGRect(x:36,y:y,width:720,height:height-2),color.withAlphaComponent(0.07));text(row["label"].text+(start>0 ? " (cont.)" : ""),CGRect(x:43,y:y+8,width:73,height:40),size:11,bold:true)
+                    for (i,column) in columns.enumerated(){let values=Array(column.dropFirst(start).prefix(30));for (j,value) in (values.isEmpty ? ["—"] : values).enumerated(){text(value,CGRect(x:124+CGFloat(i)*106,y:y+7+CGFloat(j)*12,width:98,height:13),size:9,bold:tasks == nil)}};y += height
+                }
             }
         };return NativeDocument(title:title+" "+week,data:data)
     }
+    private static func wrap(_ value:String,width:CGFloat,size:CGFloat)->[String] {
+        var lines:[String]=[],line="";let font=UIFont.systemFont(ofSize:size,weight:.semibold)
+        for word in value.split(separator:" "){let candidate=line.isEmpty ? String(word) : line+" "+word;if (candidate as NSString).size(withAttributes:[.font:font]).width>width && !line.isEmpty {lines.append(line);line=String(word)}else {line=candidate}}
+        if !line.isEmpty {lines.append(line)};return lines
+    }
     static func parties(_ parties:[J],week:String)->NativeDocument {
-        let data=UIGraphicsPDFRenderer(bounds:CGRect(x:0,y:0,width:792,height:612)).pdfData {ctx in ctx.beginPage();header("Party board",subtitle:"\(HOPDay.label(week)) – \(HOPDay.label(HOPDay.add(week,5))) · Reservations & handwritten additions",width:792)
-            for (i,day) in HOPDay.days(week).enumerated(){let x=36+CGFloat(i)*120;fill(CGRect(x:x,y:140,width:115,height:415),UIColor(white:0.97,alpha:1));text(HOPDay.label(day,"EEEE\nMMM d"),CGRect(x:x+8,y:150,width:100,height:36),size:11,bold:true);let bookings=parties.filter {String($0["date"].text.prefix(10)) == day && $0.statusText.lowercased() != "cancelled"};var y:CGFloat=200;for p in bookings.prefix(4) {fill(CGRect(x:x+5,y:y,width:105,height:54),UIColor.systemOrange.withAlphaComponent(0.15));text("\(p["time"].text) · \(p["name"].text)\n\(p["count"].text) guests · \(p["area"].text)",CGRect(x:x+10,y:y+6,width:95,height:46),size:9,bold:true);y += 62};text("ADDITIONS / NOTES",CGRect(x:x+8,y:520,width:100,height:16),size:7,color:.gray)};text("Confirm bookings before service. Blank space is reserved for pen-written additions.",CGRect(x:36,y:580,width:720,height:18),size:9)
+        let groups=HOPDay.days(week).map {day in parties.filter {String($0["date"].text.prefix(10)) == day && $0.statusText.lowercased() != "cancelled"}}
+        let data=UIGraphicsPDFRenderer(bounds:CGRect(x:0,y:0,width:792,height:612)).pdfData {ctx in
+            for start in stride(from:0,to:max(1,groups.map(\.count).max() ?? 1),by:4) {
+                ctx.beginPage();header("Party board",subtitle:"\(HOPDay.label(week)) – \(HOPDay.label(HOPDay.add(week,5))) · Reservations & handwritten additions\(start>0 ? " · Continued" : "")",width:792)
+                for (i,day) in HOPDay.days(week).enumerated(){let x=36+CGFloat(i)*120;fill(CGRect(x:x,y:140,width:115,height:415),UIColor(white:0.97,alpha:1));text(HOPDay.label(day,"EEEE\nMMM d"),CGRect(x:x+8,y:150,width:100,height:36),size:11,bold:true);var y:CGFloat=200;for p in groups[i].dropFirst(start).prefix(4) {fill(CGRect(x:x+5,y:y,width:105,height:54),UIColor.systemOrange.withAlphaComponent(0.15));text("\(p["time"].text) · \(p["name"].text)\n\(p["count"].text) guests · \(p["area"].text)",CGRect(x:x+10,y:y+6,width:95,height:46),size:9,bold:true);y += 62};text("ADDITIONS / NOTES",CGRect(x:x+8,y:520,width:100,height:16),size:7,color:.gray)};text("Confirm bookings before service. Blank space is reserved for pen-written additions.",CGRect(x:36,y:580,width:720,height:18),size:9)
+            }
         };return NativeDocument(title:"Party board "+week,data:data)
     }
     static func record(_ record:J,title:String,fields:[String])->NativeDocument {

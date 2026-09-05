@@ -49,12 +49,18 @@ enum HOPMoney {
     static func show(_ cents:Int) -> String { String(format:"$%.2f",Double(cents)/100) }
     static func dollars(_ cents:Int) -> String { String(format:"%.2f",Double(cents)/100) }
     static func round(_ value:Double) -> Int { Int(value.rounded(.toNearestOrAwayFromZero)) }
+    // Existing API rows store the applied total discount, not only its fixed component.
+    static func editableInvoice(_ saved:J)->J {
+        let percent=round(Double(saved["subtotal_cents"].int)*saved["discount_basis_points"].number/10000)
+        return saved.set(["discount_cents":.n(max(0,saved["discount_cents"].int-percent))])
+    }
     static func totals(_ document:J) -> J {
         let subtotal=document["items"].array.reduce(0) { $0 + round($1["quantity"].number * $1["unit_price_cents"].number) }
         let discount=min(subtotal,max(0,document["discount_cents"].int)+round(Double(subtotal)*document["discount_basis_points"].number/10000))
         let taxable=max(0,subtotal-discount), tax=round(Double(taxable)*document["tax_rate_basis_points"].number/10000)
         let total=taxable+tax+document["gratuity_cents"].int+document["delivery_fee_cents"].int+document["other_fee_cents"].int
-        return document.set(["subtotal_cents":.n(subtotal),"applied_discount_cents":.n(discount),"tax_cents":.n(tax),"total_cents":.n(total),"card_total_cents":.n(total+round(Double(total)*document["card_fee_basis_points"].number/10000)),"balance_due_cents":.n(max(0,total-document["amount_paid_cents"].int))])
+        let paid=document["status"].text == "paid" ? total : min(total,max(0,document["amount_paid_cents"].int))
+        return document.set(["subtotal_cents":.n(subtotal),"applied_discount_cents":.n(discount),"tax_cents":.n(tax),"total_cents":.n(total),"card_total_cents":.n(total+round(Double(total)*document["card_fee_basis_points"].number/10000)),"amount_paid_cents":.n(paid),"balance_due_cents":.n(max(0,total-paid))])
     }
 }
 

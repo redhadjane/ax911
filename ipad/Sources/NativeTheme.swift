@@ -94,8 +94,7 @@ struct NativeRoot:View {
         }.navigationSplitViewStyle(.balanced)
         .onChange(of:selection) { _,module in if let module {store.module=module;store.selected=nil} }
         .onChange(of:store.module) { _,module in selection=module }
-        .task(id:store.module) { await store.load() }
-        .task(id:store.week) { await store.load() }
+        .task(id:store.module.rawValue+store.week) { await store.load() }
         .task { while !Task.isCancelled { try? await Task.sleep(nanoseconds:30_000_000_000); guard !Task.isCancelled else {break}; if phase == .active && store.signedIn { do {store.data["/api/notifications/manager"]=try await store.api.request("/api/notifications/manager")} catch { if (error as? NativeFailure)?.status == 401 {store.logout()} } } } }
     }
     private func row(_ module:NativeModule) -> some View { NavigationLink(value:module) { HStack { Label(module.title,systemImage:module.icon); Spacer(); if module == .notifications && store.unread>0 { Text("\(store.unread)").font(.caption.bold()).foregroundStyle(.white).padding(5).background(HOPStyle.red,in:Capsule()) } }.padding(.vertical,5) } }

@@ -23,7 +23,7 @@ struct NativeDocumentPreview:View {
     }.sheet(isPresented:$sharing,onDismiss:{if let shareURL {try? FileManager.default.removeItem(at:shareURL)};shareURL=nil}) {if let shareURL {NativeShare(items:[shareURL])}}
     .alert("Export",isPresented:Binding(get:{error != nil},set:{if !$0{error=nil}})) {Button("OK"){error=nil}} message:{Text(error ?? "")}}}
 }
-@MainActor enum NativePDF {
+enum NativePDF {
     static let ink=UIColor(red:16/255,green:36/255,blue:31/255,alpha:1)
     static let green=UIColor(red:15/255,green:91/255,blue:76/255,alpha:1)
     static func text(_ value:String,_ rect:CGRect,size:CGFloat=10,bold:Bool=false,color:UIColor=ink) {

@@ -90,12 +90,12 @@ enum NativeModule:String,CaseIterable,Identifiable {
     func restore() async {
         defer { restoring=false }
         guard api.credentials.token != nil else { return }
-        do { let result=try await api.request("/api/command-auth/session"); manager=result["manager"]; signedIn=true; await load() }
+        do { let result=try await api.request("/api/command-auth/session"); manager=result["manager"]; signedIn=true }
         catch { self.error=error.localizedDescription; if (error as? NativeFailure)?.status == 401 { api.credentials.clear() } }
     }
     func login(name:String,pin:String) async {
         saving=true; defer { saving=false }
-        do { let result=try await api.request("/api/command-auth/login",method:"POST",body:.object(["name":.s(name),"pin":.s(pin)])); manager=result["manager"]; signedIn=true; error=nil; await load() }
+        do { let result=try await api.request("/api/command-auth/login",method:"POST",body:.object(["name":.s(name),"pin":.s(pin)])); manager=result["manager"]; signedIn=true; error=nil }
         catch { self.error=error.localizedDescription }
     }
     func logout() { generation += 1; api.credentials.clear(); manager = .null; signedIn=false; data=[:]; failures=[:]; selected=nil; lastSync=nil }
@@ -105,7 +105,7 @@ enum NativeModule:String,CaseIterable,Identifiable {
         await withTaskGroup(of:(String,J?,String?,Int).self) { group in
             for path in paths { group.addTask { [api] in do { return (path,try await api.request(path),nil,200) } catch { return (path,nil,error.localizedDescription,(error as? NativeFailure)?.status ?? 0) } } }
             for await (path,value,detail,status) in group {
-                guard ticket == generation else { continue }
+                guard ticket == generation && !Task.isCancelled else { continue }
                 if status == 401 { logout(); error="Your manager session expired. Please sign in again."; continue }
                 if let value { data[path]=value; failures[path]=nil } else { failures[path]=detail }
             }

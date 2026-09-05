@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: https://www.houseofpizzagaffney.com; connect-src 'self' file: blob: data:; frame-src 'none'; object-src 'none'; base-uri 'none'">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f2f5f7">
+  <title>HOP Command Center</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./document-print.css">
+  <link rel="stylesheet" href="./usability-2026.css">
+  <link rel="stylesheet" href="./ipad.css">
+</head>
+<body>
+  <div class="app-frame">
+    <header class="window-bar">
+      <div class="window-brand"><span class="app-mark"></span><span>HOP Command Center</span></div>
+      <div class="window-drag"></div>
+      <div class="window-actions" aria-label="Window actions"><button aria-label="Minimize">−</button><button aria-label="Maximize">□</button><button aria-label="Close">×</button></div>
+    </header>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <img src="./assets/official-hop-logo.png" alt="House of Pizza and Pasta">
+          <div><strong>HOP</strong><span>COMMAND CENTER</span></div>
+          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse navigation">‹</button>
+        </div>
+        <nav id="primaryNav" aria-label="Command Center modules"></nav>
+        <div class="sidebar-foot">
+          <button class="health-chip" data-route="watchdog"><span class="status-dot"></span><span>System connected</span></button>
+          <small>Hostinger shared system</small>
+        </div>
+      </aside>
+      <section class="workspace">
+        <header class="toolbar">
+          <button class="mobile-nav" id="mobileNav" aria-label="Open navigation">☰</button>
+          <div class="title-stack"><span id="breadcrumb">Operations</span><h1 id="pageTitle">Command Center</h1></div>
+          <div class="toolbar-actions">
+            <label class="global-search"><img src="./assets/home.svg" alt=""><input id="globalSearch" type="search" placeholder="Search this module" autocomplete="off"></label>
+            <button class="icon-button" data-route="notifications" aria-label="Notifications"><img src="./assets/notifications.svg" alt=""><span class="notification-ping" hidden></span></button>
+            <button class="sync-button" id="syncButton"><span class="status-dot"></span><span><b>Connected</b><small>Hostinger sync</small></span></button>
+            <button class="manager-button" id="managerButton"><span class="avatar">M</span><span><b>Manager</b><small>Secure session</small></span><span>⌄</span></button>
+          </div>
+        </header>
+        <main id="appMain" tabindex="-1"></main>
+      </section>
+    </div>
+  </div>
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  <dialog id="loginDialog" class="login-dialog">
+    <form method="dialog" id="loginForm">
+      <img src="./assets/official-hop-logo.png" alt="House of Pizza and Pasta">
+      <div><span class="eyebrow">SECURE MANAGER ACCESS</span><h2>Welcome to Command Center</h2><p>Sign in with your existing manager name and PIN.</p></div>
+      <label>Manager name<input name="name" autocomplete="username" required></label>
+      <label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" required></label>
+      <p class="form-error" id="loginError"></p>
+      <button class="primary-button" value="default" type="submit">Open Command Center</button>
+    </form>
+  </dialog>
+  <dialog id="actionDialog" class="action-dialog">
+    <form method="dialog" id="actionForm">
+      <div class="dialog-head">
+        <div><span class="eyebrow" id="actionEyebrow">CONNECTED RECORD</span><h2 id="actionTitle">Record details</h2><p id="actionDescription"></p></div>
+        <button type="button" class="icon-button" id="actionClose" aria-label="Close">×</button>
+      </div>
+      <div id="actionBody" class="dialog-body"></div>
+      <p class="form-error" id="actionError"></p>
+      <div class="dialog-actions" id="actionButtons"></div>
+    </form>
+  </dialog>
+  <script src="./native.js"></script>
+  <script src="./dateContract.js"></script>
+  <script src="./exportService.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+/* iPad-only layer: the shared Windows/web source remains unchanged. */
+html { -webkit-text-size-adjust: 100%; --sidebar: 218px; --toolbar: 76px; }
+html, body { height: 100%; height: var(--ipad-height, 100dvh); }
+.ipad-runtime { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 15px; }
+.ipad-runtime .window-bar { display: none !important; }
+.ipad-runtime .app-frame { height: 100%; }
+.ipad-runtime .app-shell { min-height: 0; }
+.ipad-runtime .workspace { min-height: 0; }
+.ipad-runtime #appMain { min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; padding: 22px 20px 40px; }
+.ipad-runtime .sidebar { padding-top: 20px; }
+.ipad-runtime #primaryNav { min-height: 0; overflow-y: auto; }
+.ipad-runtime .nav-item { min-height: 44px; height: auto; font-size: 14px; padding: 10px; }
+.ipad-runtime .toolbar { padding: 12px 20px; }
+.ipad-runtime .toolbar-actions { gap: 9px; }
+.ipad-runtime button, .ipad-runtime select, .ipad-runtime input:not([type="checkbox"]):not([type="radio"]) { min-height: 42px; }
+.ipad-runtime .button, .ipad-runtime .primary-button, .ipad-runtime .danger-button, .ipad-runtime .filter-chip { font-size: 13px; }
+.ipad-runtime .tab-button, .ipad-runtime .segment button, .ipad-runtime .segmented button { min-height: 42px; font-size: 13px; }
+.ipad-runtime input, .ipad-runtime select, .ipad-runtime textarea { font-size: 16px; }
+.ipad-runtime .page-head h2 { font-size: 25px; }
+.ipad-runtime .page-head p, .ipad-runtime .card-head p { font-size: 12px; }
+.ipad-runtime .detail-panel { min-width: 0; }
+.ipad-runtime .action-dialog { max-height: calc(var(--ipad-height, 100dvh) - 24px); width: min(1050px, calc(100vw - 28px)); }
+.ipad-runtime .action-dialog form { max-height: calc(var(--ipad-height, 100dvh) - 28px); }
+.ipad-runtime .action-dialog .dialog-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.ipad-runtime .action-dialog .dialog-actions { padding-bottom: max(14px, env(safe-area-inset-bottom)); flex-wrap: wrap; }
+.ipad-runtime .invoice-workspace-dialog form { height: calc(var(--ipad-height, 100dvh) - 30px); }
+.ipad-runtime .invoice-line-actions button { min-width: 40px; }
+.ipad-runtime .toast-region { bottom: 22px; right: 22px; max-width: calc(100vw - 44px); }
+.ipad-build-label { color: var(--muted); font-size: 10px; margin-top: 12px; }
+@media (max-width: 1180px) {
+  .ipad-runtime .global-search { display: none; }
+  .ipad-runtime .schedule-layout { grid-template-columns: minmax(0, 1fr); }
+  .ipad-runtime .schedule-layout .detail-panel { position: static; }
+  .ipad-runtime .split-view, .ipad-runtime .three-panel { grid-template-columns: 1fr; }
+}
+@media (max-width: 950px) {
+  .ipad-runtime .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .ipad-runtime .sidebar { position: fixed; inset: 0 auto 0 0; width: 248px; transform: translateX(-100%); box-shadow: var(--shadow); z-index: 80; }
+  .ipad-runtime.nav-open .sidebar { transform: none; }
+  .ipad-runtime .mobile-nav { display: block; min-width: 44px; }
+  .ipad-runtime .sidebar-toggle { display: none; }
+  .ipad-runtime .toolbar { padding: 10px 12px; }
+  .ipad-runtime .sync-button small, .ipad-runtime .manager-button small { display: none; }
+  .ipad-runtime .invoice-builder-layout, .ipad-runtime .invoice-workspace-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .ipad-runtime *, .ipad-runtime *::before, .ipad-runtime *::after { transition: none !important; animation: none !important; } }

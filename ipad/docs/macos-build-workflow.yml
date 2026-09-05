@@ -1,0 +1,36 @@
+name: HOP Command iPad build
+on:
+  push:
+    branches: [hop-command-ipad]
+    paths: ['ipad/**', '.github/workflows/hop-command-ipad.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hop-command-ipad-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: macos-15
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: ipad
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apple toolchain
+        run: xcodebuild -version
+      - name: Portable native security policy tests
+        run: swift test
+      - name: JavaScript bridge and package contract tests
+        run: node --test scripts/contracts.test.cjs
+      - name: Compile device app and package unsigned IPA (no simulator)
+        run: bash scripts/build-ipa.sh
+      - name: Upload iPad IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOPCommand-iPad-unsigned-ipa
+          path: ipad/build/HOPCommand-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,16 @@
+/* Loaded only by the isolated PDF renderer; never changes the manager workspace. */
+html,body.ipad-export { margin:0!important; padding:0!important; height:auto!important; overflow:visible!important; background:white!important; color:#173b31!important; }
+body.ipad-export { font-family:Arial,sans-serif; }
+body.ipad-export>article,body.ipad-export>section { display:block!important; position:static!important; inset:auto!important; width:100%!important; height:auto!important; min-height:0!important; padding:0!important; margin:0!important; transform:none!important; box-shadow:none!important; overflow:visible!important; }
+@media print {
+  body.ipad-export * { visibility:visible!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+  body.ipad-export .main-site-invoice { width:100%!important; min-height:0!important; position:static!important; padding:0!important; page:auto!important; }
+  body.ipad-export .invoice-export-table thead { display:table-header-group; }
+  body.ipad-export .invoice-export-table tr,body.ipad-export .invoice-export-bottom,body.ipad-export .invoice-export-footer { break-inside:avoid; }
+  body.ipad-export .invoice-export-table td { font-size:11px; }
+  body.ipad-export .invoice-export-parties section span,body.ipad-export .invoice-export-parties dl>div,body.ipad-export .invoice-export-totals span { font-size:11px; }
+  body.ipad-export .wallboard-export,body.ipad-export .task-wallboard-export,body.ipad-export .application-paper { position:static!important; width:100%!important; height:auto!important; min-height:0!important; overflow:visible!important; page:auto!important; padding:0!important; }
+  body.ipad-export .party-export-grid,body.ipad-export .party-export-grid>section { min-height:5.1in!important; }
+  body.ipad-export .party-export-grid>section>div { min-height:4.7in!important; }
+  body.ipad-export .party-export-empty { min-height:4.4in!important; }
+}

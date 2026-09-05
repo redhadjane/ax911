@@ -1,0 +1,165 @@
+{
+  "base": "HOP Command Center desktop 1.3.7, current local working copy",
+  "files": [
+    {
+      "file": "index.html",
+      "sha256": "5bf6e864a4480047dc99db06d5a69075f55e86f89a29ecabf9a4c233d6560db2"
+    },
+    {
+      "file": "app.js",
+      "sha256": "df9496cdb6c1fa04255bdc2d4cedf8507aeb9b518301af5e95f98874aca5f6f3"
+    },
+    {
+      "file": "exportService.js",
+      "sha256": "3cb1b91e02ac34e4e3bca128aad4900d0b9a87846f813b6dbb6d7100f448f60c"
+    },
+    {
+      "file": "dateContract.js",
+      "sha256": "743875cc7fbc6fe11caee997c89ff3373cd0696484c69c0faac56c255fb9c69b"
+    },
+    {
+      "file": "styles.css",
+      "sha256": "7db1c4652b00a07874c718d3a1e5550ed38c5edeea57f8b700402360e7ed770d"
+    },
+    {
+      "file": "document-print.css",
+      "sha256": "62a58bb57fb970ab97684df8bc304151c6fccf93f55cabe7fa24db7cbf7beabb"
+    },
+    {
+      "file": "usability-2026.css",
+      "sha256": "02d8377cd349411022d57237eafd9d94d0595ab2faac938f55dd2726f3062561"
+    },
+    {
+      "file": "assets/applications-filled.svg",
+      "sha256": "3751e301f70ed9925e130701e3797311c9675bbfe4d252a0815cb72e0f57a785"
+    },
+    {
+      "file": "assets/applications.svg",
+      "sha256": "a2191ca40b0a59a7e53555b12e5ee50eef85c4292faae90eaa42d2b1c3022d78"
+    },
+    {
+      "file": "assets/availability-filled.svg",
+      "sha256": "a021bc9d945d9544a6406e852a4bf68197ed5c9a27191901a60fa7e019b5ea59"
+    },
+    {
+      "file": "assets/availability.svg",
+      "sha256": "d814f9f0cb0501d48e247e6401d5340da30373fb602ec0603bb4e173b0fc2fb4"
+    },
+    {
+      "file": "assets/catering-filled.svg",
+      "sha256": "cd1e6e58b96affbc30ffac69deadbd27860cf8adce758808b0c02d459d664b77"
+    },
+    {
+      "file": "assets/catering.svg",
+      "sha256": "2acc16a3e9aa4092181e9f7ed67f6dcec1c1ff88c3df48f44108b3779f9060bf"
+    },
+    {
+      "file": "assets/employees-filled.svg",
+      "sha256": "9a07eebc9f51bfb7f041ae5abebbce6878228760e20ffc43d2930f7305f6b0cb"
+    },
+    {
+      "file": "assets/employees.svg",
+      "sha256": "3e45c083154bba0c8b0978ed75788840a28c639afe5487dba6af33d16111761e"
+    },
+    {
+      "file": "assets/home-filled.svg",
+      "sha256": "1f7d28af9fee0a889982a328b3b9949ec71f08c194ca1f4bbae3fbaab25b41a1"
+    },
+    {
+      "file": "assets/home.svg",
+      "sha256": "f78ef623c07e6f40474ebd55b88ad29739d77bf9629e20ef462f4db86452acf0"
+    },
+    {
+      "file": "assets/inbox-filled.svg",
+      "sha256": "babdff339dff3e06462484bacea3a03ad0314108f05af78a94cfeff0fc61b41f"
+    },
+    {
+      "file": "assets/inbox.svg",
+      "sha256": "463198169f058ce603aafafe25cde71dec710de2693271beb0784138a2e255a0"
+    },
+    {
+      "file": "assets/invoices-filled.svg",
+      "sha256": "6547dbb32ac6f3b4e44e004242d5d0754f1a4f3a58bd72e0665fa35b2b471cab"
+    },
+    {
+      "file": "assets/invoices.svg",
+      "sha256": "29cf6e19f774ac44bdc2737855a19eca0f3c3fd1bca96504eef27034148e571e"
+    },
+    {
+      "file": "assets/menu-filled.svg",
+      "sha256": "5462a8055084d0d0da5dbcfe1fc1164ab0f29302b62cf0bbe30c848ff924ca18"
+    },
+    {
+      "file": "assets/menu.svg",
+      "sha256": "ffeee2fa4d7ff2916172dc96a6a2990556f99f18c3a80cc486180bab77c127c3"
+    },
+    {
+      "file": "assets/notifications-filled.svg",
+      "sha256": "f9317b0d723db1234c051e30bebad503d5a56b06cee7beb26fc1cf58ee17655a"
+    },
+    {
+      "file": "assets/notifications.svg",
+      "sha256": "3b56e93152bd74091bc59e77b453d69811ae4afce78b699d38ecc55d1810b7f6"
+    },
+    {
+      "file": "assets/official-hop-logo.png",
+      "sha256": "189f0c90e2239caeef4cab22d7d4381f837362a32443c5b2fe074f47d30b0e87"
+    },
+    {
+      "file": "assets/parties-filled.svg",
+      "sha256": "7945183e942e30dcaf6c2136f189a999ff107f88e4f1c7fd9dbb8c7a1ff6766d"
+    },
+    {
+      "file": "assets/parties.svg",
+      "sha256": "1ed63d669f084b767a2fdc4d6df592add1bb12fad30dd43f3621e36655caf98d"
+    },
+    {
+      "file": "assets/reports-filled.svg",
+      "sha256": "b912cf282ebaa5b3e829d4a93acf94d86813a4c434aea010e353ff5f0502b80e"
+    },
+    {
+      "file": "assets/reports.svg",
+      "sha256": "c27d2946fe96c4021dc9f40f86c295c0b581f3011526b47222c1618cd642768f"
+    },
+    {
+      "file": "assets/schedule-filled.svg",
+      "sha256": "0631cd22e30cc096e258c72aab3d4d7aafd41e06d1b4d0c0332f6e2289a64b18"
+    },
+    {
+      "file": "assets/schedule.svg",
+      "sha256": "7bb2e8004c34326c241d2d796c355d257e99fa1a5209178fb3d032cc429a8221"
+    },
+    {
+      "file": "assets/settings-filled.svg",
+      "sha256": "c19ff922990add433c3d5ddc2fb9843b3e4d31c1074ef05295d46c4ec8f23c83"
+    },
+    {
+      "file": "assets/settings.svg",
+      "sha256": "5ac05e6e11c9ec9f24703091c42ca1f5c91f4032cb0eee35c892d1872a38871b"
+    },
+    {
+      "file": "assets/tasks-filled.svg",
+      "sha256": "bffdf8f722a3e7a22424e0bf82907d8de085b011c325bbfebc1ccbadf37a79e9"
+    },
+    {
+      "file": "assets/tasks.svg",
+      "sha256": "b2db65a324f18726ea89ad41899b4574482b6747f270c1b15c0674f38b739c14"
+    },
+    {
+      "file": "assets/watchdog-filled.svg",
+      "sha256": "25b93bf248442c6f543caf795bfbc6ada9f29a52fe55cf861554eb023456e9c4"
+    },
+    {
+      "file": "assets/watchdog.svg",
+      "sha256": "d25f0805ecf71295565592d2a4677fdc30eb8894922882fc8c1d8fdcd5f2140f"
+    },
+    {
+      "file": "assets/website-filled.svg",
+      "sha256": "25684c685d0535969e482d8698a5b829f555f31fe1786266cb96da75bb5010a7"
+    },
+    {
+      "file": "assets/website.svg",
+      "sha256": "6ccf7bd90c417a718d85a7ead6c25d152914d116bf18e33629c4d2ed380dfaee"
+    }
+  ]
+}

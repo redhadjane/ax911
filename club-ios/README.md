@@ -10,7 +10,7 @@ Prices and loyalty balances come from the existing server. Nothing is automatica
 
 ## Deliberate boundaries
 
-- Existing-member testing only. The current backend signup upsert can overwrite credentials for an existing phone. This native client intentionally does not call or expose that route; secure enrollment and account recovery must be addressed before a public release.
+- Existing-member testing only. This client does not expose registration; enrollment, account ownership verification and recovery need a separate security review before public release.
 - No native APNs background push with this free-account SideStore setup. Activity/status refresh while using the app. Public distribution, signing and push require a separate release path.
 - Pickup requests require host phone confirmation; no card-payment capture or delivery checkout is invented.
 - Profile/PIN edits and automatic promotional discounts are not implemented through unverified endpoints.

@@ -54,10 +54,12 @@ enum SessionKeychain {
 
 @MainActor final class HOPStore: ObservableObject {
     let api = HOPAPI()
-    @Published var employee: HOPRecord?
+    private let scheduleProjection = HOPScheduleProjection()
+    @Published var employee: HOPRecord? { didSet { prepareSchedule() } }
     @Published var screen: HOPLink = .home
-    @Published var week = HOPCalendar.tuesday(HOPCalendar.today())
-    @Published var data: [String: JSONValue] = [:]
+    var presentedScreen: HOPLink?
+    @Published var week = HOPCalendar.tuesday(HOPCalendar.today()) { didSet { prepareSchedule() } }
+    @Published var data: [String: JSONValue] = [:] { didSet { prepareSchedule() } }
     @Published var errors: [String: String] = [:]
     @Published var loading = false
     @Published var busy = false
@@ -67,6 +69,12 @@ enum SessionKeychain {
     private var generation = 0
     private var sessionVersion = 0
     private var expiry = Date.distantPast
+    private var inFlight: [String: UUID] = [:]
+    private var loadedAt: [String: Date] = [:]
+    private(set) var endpointMilliseconds: [String: Double] = [:]
+    private func prepareSchedule() { scheduleProjection.update(data: data, week: week, employee: employee) }
+    private func setData(_ key: String, _ value: JSONValue) { if data[key] != value { data[key] = value } }
+    private func setError(_ key: String, _ value: String?) { if errors[key] != value { errors[key] = value } }
 
     func restore() async {
         guard let encoded = SessionKeychain.read(), let session = try? JSONDecoder().decode(EmployeeSession.self, from: encoded) else { return }
@@ -94,14 +102,16 @@ enum SessionKeychain {
         if let employee { ScheduleCache.clear(employee: employee.id) }
         sessionVersion += 1; let version = sessionVersion
         generation += 1; SessionKeychain.clear(); SessionKeychain.clear(account: "club")
+        inFlight = [:]; loadedAt = [:]; endpointMilliseconds = [:]; presentedScreen = nil
         employee = nil; data = [:]; errors = [:]; expiry = .distantPast; loading = false; message = nil; lastRefresh = nil
         Task { await api.authorize("", version: version) }
     }
-    func refresh() async {
+    func ensureLoaded(_ route: HOPLink) async { await refresh(sections: HOPRefreshPlan.sections(for: route), force: false) }
+    func refresh(sections: Set<String>? = nil, force: Bool = true, supersede: Bool = false) async {
         guard let person = employee else { return }
         guard expiry > Date() else { logout(); loginError = "Your sign-in expired. Enter your PIN again."; return }
-        generation += 1; let run = generation; let requestedWeek = week
-        loading = true
+        let run = generation; let requestedWeek = week; let batch = UUID()
+        let keys = sections ?? HOPRefreshPlan.sections(for: presentedScreen ?? screen)
         let endpoints: [(String, String, [String: String])] = [
             ("mine", "/api/schedules/employee/\(person.id)/\(requestedWeek)", [:]),
             ("team", "/api/schedules/published/\(requestedWeek)", [:]),
@@ -115,50 +125,71 @@ enum SessionKeychain {
             ("parties", "/api/parties", ["week_start": requestedWeek]),
             ("directory", "/api/employees", [:]),
             ("profile", "/api/employees/\(person.id)", [:])
-        ]
-        await withTaskGroup(of: (String, JSONValue?, String?, Int).self) { group in
+        ].filter { key, _, _ in
+            keys.contains(key) && (supersede || inFlight[key] == nil)
+                && (force || data[key] == nil || errors[key] != nil || Date().timeIntervalSince(loadedAt[key] ?? .distantPast) > 30)
+        }
+        guard !endpoints.isEmpty else { return }
+        for (key, _, _) in endpoints { inFlight[key] = batch }
+        if !loading { loading = true }
+        await withTaskGroup(of: (String, JSONValue?, String?, Int, Double).self) { group in
             for (key, path, query) in endpoints {
                 group.addTask { [api] in
-                    do { return (key, try await api.request(path, query: query), nil, 200) }
-                    catch let error as HOPAPIError { return (key, nil, error.message, error.status) }
-                    catch { return (key, nil, error.localizedDescription, 0) }
+                    let started = ProcessInfo.processInfo.systemUptime
+                    do { return (key, try await api.request(path, query: query), nil, 200, (ProcessInfo.processInfo.systemUptime - started) * 1000) }
+                    catch let error as HOPAPIError { return (key, nil, error.message, error.status, (ProcessInfo.processInfo.systemUptime - started) * 1000) }
+                    catch { return (key, nil, error.localizedDescription, 0, (ProcessInfo.processInfo.systemUptime - started) * 1000) }
                 }
             }
-            for await (key, payload, error, status) in group {
-                guard generation == run, employee?.id == person.id, week == requestedWeek else { continue }
+            for await (key, payload, error, status, milliseconds) in group {
+                guard generation == run, employee?.id == person.id, week == requestedWeek, inFlight[key] == batch else { continue }
+                inFlight[key] = nil
+                endpointMilliseconds[key] = milliseconds
                 if status == 401 { group.cancelAll(); logout(); loginError = "Your sign-in expired. Enter your PIN again."; continue }
                 if status == 404 && ["mine", "team", "next"].contains(key) {
-                    data[key] = .object(["schedule": .null]); errors[key] = nil
+                    setData(key, .object(["schedule": .null])); setError(key, nil); loadedAt[key] = Date()
                 } else if let payload {
                     if payload["fallback"].flag || payload["database_available"] == .bool(false) {
-                        errors[key] = "HOP's database is temporarily unavailable. The last published schedule is shown if available."; continue
+                        setError(key, "HOP's database is temporarily unavailable. The last published schedule is shown if available."); continue
                     }
-                    if key == "directory" { data[key] = .object(["employees": .array(payload["employees"].records.map { minimalIdentity($0).raw })]) }
-                    else if key == "pending" || key == "history" { data[key] = safeRequestList(payload) }
-                    else { data[key] = payload }
-                    errors[key] = nil
+                    if key == "directory" { setData(key, .object(["employees": .array(payload["employees"].records.map { minimalIdentity($0).raw })])) }
+                    else if key == "pending" || key == "history" { setData(key, safeRequestList(payload)) }
+                    else { setData(key, payload) }
+                    setError(key, nil); loadedAt[key] = Date()
                     if key == "profile" {
                         let updated = HOPRecord(payload["employee"])
                         if updated.status != "active" { group.cancelAll(); logout(); loginError = "This employee account is not active." }
-                        else { employee = updated }
+                        else if employee != updated { employee = updated }
                     }
-                } else { errors[key] = error ?? "Could not refresh. Pull down to try again." }
+                } else { setError(key, error ?? "Could not refresh. Pull down to try again.") }
             }
         }
         guard generation == run else { return }
-        loading = false; if errors.isEmpty { lastRefresh = Date() }
-        if errors["mine"] == nil && errors["team"] == nil { ScheduleCache.write(employee: person.id, week: requestedWeek, sections: data) }
+        for (key, _, _) in endpoints where inFlight[key] == batch { inFlight[key] = nil }
+        let stillLoading = !inFlight.isEmpty; if loading != stillLoading { loading = stillLoading }
+        if endpoints.allSatisfy({ errors[$0.0] == nil }) { lastRefresh = Date() }
+        if !keys.isDisjoint(with: ["mine", "team", "next", "directory"]), errors["mine"] == nil, errors["team"] == nil {
+            ScheduleCache.write(employee: person.id, week: requestedWeek, sections: data)
+        }
     }
-    func changeWeek(_ days: Int) async { week = HOPCalendar.add(week, days: days); data = [:]; errors = [:]; loadSnapshot(); await refresh() }
-    func selectWeek(_ value: String) async { guard HOPCalendar.date(value) != nil else { return }; week = HOPCalendar.tuesday(value); data = [:]; errors = [:]; loadSnapshot(); await refresh() }
+    func changeWeek(_ days: Int) async { await selectWeek(HOPCalendar.add(week, days: days)) }
+    func selectWeek(_ value: String) async {
+        guard HOPCalendar.date(value) != nil else { return }
+        let selected = HOPCalendar.tuesday(value)
+        if selected != week {
+            generation += 1; inFlight = [:]; loading = false
+            // Keep account-wide messages, requests and the name directory.
+            data = data.filter { !HOPRefreshPlan.weekScoped.contains($0.key) }
+            errors = errors.filter { !HOPRefreshPlan.weekScoped.contains($0.key) }
+            loadedAt = loadedAt.filter { !HOPRefreshPlan.weekScoped.contains($0.key) }
+            week = selected; loadSnapshot()
+        }
+        await refresh()
+    }
     func clearScheduleCache() { if let employee { ScheduleCache.clear(employee: employee.id) }; message = "Saved schedule copies cleared from this iPhone. Live HOP records were not changed." }
     func refreshNotifications() async {
-        guard let person = employee, !busy else { return }; let version = sessionVersion
-        do {
-            let result = try await api.request("/api/notifications/employee/\(person.id)")
-            guard version == sessionVersion else { return }; data["notifications"] = result; errors["notifications"] = nil
-        } catch let error as HOPAPIError where error.status == 401 { if version == sessionVersion { logout(); loginError = error.message } }
-        catch { if version == sessionVersion { errors["notifications"] = error.localizedDescription } }
+        guard !busy else { return }
+        await refresh(sections: ["notifications"])
     }
     func act(_ path: String, body: [String: JSONValue] = [:], success: String) async -> Bool {
         guard !busy, let person = employee else { return false }; busy = true; defer { busy = false }
@@ -166,20 +197,13 @@ enum SessionKeychain {
         do {
             _ = try await api.request(path, method: "POST", body: .object(body))
             guard employee?.id == person.id, version == sessionVersion else { return false }
-            message = success; await refresh(); return true
+            message = success; await refresh(sections: HOPRefreshPlan.afterAction(path), supersede: true); return true
         } catch let error as HOPAPIError where error.status == 401 { if version == sessionVersion { logout(); loginError = error.message }; return false }
         catch { if version == sessionVersion { message = error is URLError ? "The connection ended before HOP confirmed the result. Refresh and check whether it was saved before submitting again." : error.localizedDescription }; return false }
     }
-    private func named(_ shifts: [HOPShift]) -> [HOPShift] {
-        shifts.map { shift in
-            let known = records("directory", "employees").first { $0.id == shift.employeeID }?.name
-            let name = known ?? (shift.employeeID == employee?.id ? employee?.name : nil) ?? (shift.employeeName.isEmpty ? "Name unavailable" : shift.employeeName)
-            return shift.named(name)
-        }
-    }
-    var shifts: [HOPShift] { named(HOPShift.from(data["mine"] ?? .null, week: week, employeeID: employee?.id)) }
-    var teamShifts: [HOPShift] { named(HOPShift.from(data["team"] ?? .null, week: week)) }
-    var futureShifts: [HOPShift] { (shifts + named(HOPShift.from(data["next"] ?? .null, week: HOPCalendar.add(week, days: 7), employeeID: employee?.id))).filter { ($0.endInstant ?? .distantPast) > Date() } }
+    var shifts: [HOPShift] { scheduleProjection.mine }
+    var teamShifts: [HOPShift] { scheduleProjection.team }
+    var futureShifts: [HOPShift] { (scheduleProjection.mine + scheduleProjection.next).filter { ($0.endInstant ?? .distantPast) > Date() } }
     private func minimalIdentity(_ person: HOPRecord) -> HOPRecord {
         HOPRecord(.object(person.raw.fields.filter { ["id", "display_name", "name", "full_name", "role", "secondary_roles", "status"].contains($0.key) }))
     }
@@ -203,7 +227,7 @@ enum SessionKeychain {
     var unread: Int { notifications.filter { !$0.isRead }.count }
     func records(_ section: String, _ key: String) -> [HOPRecord] { data[section]?[key].records ?? [] }
     func openNotification(_ record: HOPRecord) async {
-        if !record.isRead { _ = await act("/api/notifications/\(record.id)/read", success: "Notification read") }
         screen = HOPLink.notification(record)
+        if !record.isRead { _ = await act("/api/notifications/\(record.id)/read", success: "Notification read") }
     }
 }

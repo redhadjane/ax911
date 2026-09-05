@@ -52,7 +52,14 @@ struct HOPRoot: View {
                     }
                 }
                 .onChange(of: store.screen) { _, route in
-                    if [.availability, .tasks, .parties, .club].contains(route) { feature = route; store.screen = .profile }
+                    if [.availability, .tasks, .parties, .club].contains(route) {
+                        store.presentedScreen = route; feature = route; store.screen = .profile
+                        if route != .availability { Task { await store.ensureLoaded(route) } }
+                    } else if feature == nil { Task { await store.ensureLoaded(route) } }
+                }
+                .onChange(of: feature) { _, value in
+                    store.presentedScreen = value
+                    if value == nil { Task { await store.ensureLoaded(store.screen) } }
                 }
             }
         }
@@ -67,7 +74,7 @@ struct HOPRoot: View {
                 if store.employee != nil && !store.busy && !store.loading { if tick % 3 == 0 { await store.refresh() } else { await store.refreshNotifications() } }
             }
         }
-        .onChange(of: phase) { _, value in if value == .active, store.employee != nil, !store.busy { Task { await store.refresh() } } }
+        .onChange(of: phase) { _, value in if value == .active, store.employee != nil, !store.busy { Task { await store.ensureLoaded(store.presentedScreen ?? store.screen) } } }
         .onChange(of: store.employee?.id) { _, value in if value == nil { feature = nil } }
         .overlay { if phase != .active && store.employee != nil { ZStack { HOPStyle.background.ignoresSafeArea(); VStack(spacing: 16) { Image("HOPLogo").resizable().scaledToFit().frame(width: 80, height: 80); Text("HOP Staff").font(.title2.bold()); Label("Your information is protected", systemImage: "lock").font(.subheadline).foregroundStyle(.secondary) } } } }
         .alert("House of Pizza", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
@@ -156,7 +163,7 @@ struct WeekControl: View {
             Button { selectedDate = HOPCalendar.date(store.week) ?? Date(); pickDate = true } label: { VStack(spacing: 3) { Text("\(HOPCalendar.label(store.week, format: "MMM d")) – \(HOPCalendar.label(HOPCalendar.add(store.week, days: 5), format: "MMM d"))").font(.headline); Text("Choose week · \(String(store.week.prefix(4)))").font(.caption).foregroundStyle(.secondary) }.frame(minHeight: 44) }.buttonStyle(.plain).accessibilityLabel("Choose schedule week")
             Spacer(minLength: 0)
             Button { Task { await store.changeWeek(7) } } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }.accessibilityLabel("Next week")
-        }.disabled(store.loading).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        }.disabled(store.busy).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
         .sheet(isPresented: $pickDate) {
             NavigationStack {
                 VStack {

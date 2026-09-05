@@ -95,4 +95,63 @@ final class HOPCoreTests: XCTestCase {
         XCTAssertTrue(result.contains("DTSTART:20260917T140000Z")); XCTAssertTrue(result.contains("DTEND:20260917T190000Z"))
         XCTAssertTrue(result.contains("UID:entry@houseofpizzagaffney.com")); XCTAssertTrue(result.hasSuffix("END:VCALENDAR\r\n"))
     }
+    func testProjectionReusesScheduleWhenUnrelatedMessagesChange() {
+        let projection = HOPScheduleProjection()
+        let person = HOPRecord(.object(["id": .string("employee-a"), "name": .string("Pilot")]))
+        var data = ["mine": payload(entries: [entry()]), "team": payload(entries: [entry(), entry("b", employee: "employee-b", row: "row-host")])]
+        projection.update(data: data, week: "2026-09-15", employee: person)
+        let builds = projection.rebuildCount
+        for i in 0..<1000 {
+            XCTAssertEqual(projection.mine.count, 1); XCTAssertEqual(projection.team.count, 2)
+            data["notifications"] = .number(Double(i))
+            projection.update(data: data, week: "2026-09-15", employee: person)
+        }
+        XCTAssertEqual(projection.rebuildCount, builds, "Messages and scrolling must not reparse the schedule")
+        XCTAssertEqual(projection.mine[0].employeeName, "Pilot")
+    }
+    func testProjectionInvalidatesNamesWeekAndAccountAndClearsOnLogout() {
+        let projection = HOPScheduleProjection()
+        let a = HOPRecord(.object(["id": .string("employee-a"), "name": .string("Pilot A")]))
+        let b = HOPRecord(.object(["id": .string("employee-b"), "name": .string("Pilot B")]))
+        var data = ["mine": payload(entries: [entry(), entry("b", employee: "employee-b", row: "row-host")])]
+        projection.update(data: data, week: "2026-09-15", employee: a)
+        data["directory"] = .object(["employees": .array([.object(["id": .string("employee-a"), "name": .string("Updated A")])])])
+        projection.update(data: data, week: "2026-09-15", employee: a)
+        XCTAssertEqual(projection.mine.first?.employeeName, "Updated A")
+        projection.update(data: data, week: "2026-09-22", employee: b)
+        XCTAssertEqual(projection.mine.map(\.employeeID), ["employee-b"])
+        XCTAssertEqual(projection.mine.first?.date, "2026-09-24")
+        projection.update(data: [:], week: "2026-09-22", employee: nil)
+        XCTAssertTrue(projection.mine.isEmpty && projection.team.isEmpty && projection.next.isEmpty)
+    }
+    func testProjectionNeverTurnsDraftIntoPublishedData() {
+        let projection = HOPScheduleProjection()
+        let person = HOPRecord(.object(["id": .string("employee-a")]))
+        projection.update(data: ["team": payload(entries: [entry()], status: "draft")], week: "2026-09-15", employee: person)
+        XCTAssertTrue(projection.team.isEmpty)
+    }
+    func testIndexedCellsDoNotMixTimeAndClosureAcrossRowsOrDays() {
+        let values = [entry("time", employee: "", label: "10 AM - 3 PM"), entry(),
+                      entry("closed", row: "row-host", notes: "HOP_SLOT_INACTIVE"),
+                      entry("other-day", row: "row-host", day: 5, start: "16:00", end: "20:00")]
+        let shifts = HOPShift.from(payload(entries: values), week: "2026-09-15")
+        XCTAssertEqual(shifts.map(\.id), ["entry", "other-day"])
+        XCTAssertEqual(shifts.last?.time, "4:00 PM – 8:00 PM")
+    }
+    func testRefreshPlansKeepSmallActionsAndStartupScoped() {
+        XCTAssertEqual(HOPRefreshPlan.sections(for: .home), ["mine", "next", "notifications", "profile"])
+        XCTAssertEqual(HOPRefreshPlan.afterAction("/api/notifications/item/read"), ["notifications"])
+        XCTAssertEqual(HOPRefreshPlan.afterAction("/api/tasks/complete"), ["tasks"])
+        XCTAssertTrue(HOPRefreshPlan.sections(for: .schedule).contains("directory"))
+        XCTAssertTrue(HOPRefreshPlan.sections(for: .requests).contains("history"))
+        XCTAssertFalse(HOPRefreshPlan.weekScoped.contains("notifications"))
+        XCTAssertFalse(HOPRefreshPlan.weekScoped.contains("directory"))
+        XCTAssertTrue(HOPRefreshPlan.weekScoped.contains("mine"))
+    }
+    func testFastCalendarParserRetainsStrictValidation() {
+        XCTAssertNil(HOPCalendar.date("2026-13-01")); XCTAssertNil(HOPCalendar.date("2026-00-01"))
+        XCTAssertNil(HOPCalendar.date("2026-09-00")); XCTAssertNil(HOPCalendar.date("2026-9-01"))
+        XCTAssertNil(HOPCalendar.date("2025-02-29")); XCTAssertNil(HOPCalendar.date("0000-01-01"))
+        XCTAssertEqual(HOPCalendar.key(HOPCalendar.date("2028-02-29")!), "2028-02-29")
+    }
 }

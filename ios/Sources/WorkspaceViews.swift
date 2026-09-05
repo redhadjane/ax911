@@ -16,7 +16,7 @@ struct HomeView: View {
                     Spacer(); EmployeeAvatar(url: store.employee?["profile_image_url"].text ?? "", name: store.employee?.name ?? "", size: 54)
                 }
                 if store.week != HOPCalendar.tuesday(HOPCalendar.today()) {
-                    Button { Task { store.week = HOPCalendar.tuesday(HOPCalendar.today()); store.data = [:]; await store.refresh() } } label: {
+                    Button { Task { await store.selectWeek(HOPCalendar.today()) } } label: {
                         Label("Viewing another week · Return to today", systemImage: "arrow.uturn.backward")
                     }.buttonStyle(.bordered).controlSize(.large)
                 }
@@ -68,7 +68,7 @@ struct HomeView: View {
                         Button("View all messages") { store.screen = .notifications }.frame(minHeight: 44)
                     }
                 }
-                if let refreshed = store.lastRefresh { Text("Last fully refreshed \(refreshed.formatted(date: .omitted, time: .shortened)) · Device local time").font(.caption).foregroundStyle(.secondary) }
+                if let refreshed = store.lastRefresh { Text("Last sync \(refreshed.formatted(date: .omitted, time: .shortened)) · Device local time").font(.caption).foregroundStyle(.secondary) }
             }.padding(20)
         }.background(HOPStyle.background).navigationTitle("HOP Staff").navigationBarTitleDisplayMode(.inline).refreshable { await store.refresh() }
     }
@@ -110,8 +110,13 @@ struct ScheduleView: View {
     private var visible: [HOPShift] { matching.filter { mode != "day" || $0.date == selectedDay } }
     private var days: [String] { Array(Set(visible.map(\.date))).sorted() }
     var body: some View {
+        let schedule = team ? store.teamShifts : store.shifts
+        let matching = schedule.filter { role == "all" || $0.roleKey == role }
+        let visible = matching.filter { mode != "day" || $0.date == selectedDay }
+        let groups = Dictionary(grouping: visible, by: \.date)
+        let counts = Dictionary(grouping: schedule, by: { $0.date + "|" + $0.employeeID }).mapValues(\.count)
         ScrollView {
-            VStack(spacing: 18) {
+            LazyVStack(spacing: 18) {
                 WeekControl()
                 Picker("Schedule", selection: $team) { Text("My shifts").tag(false); Text("Everyone").tag(true) }.pickerStyle(.segmented)
                 Picker("Role", selection: $role) { Text("All roles").tag("all"); Text("Serving").tag("main"); Text("Hosting").tag("host"); Text("Floor help").tag("support") }.pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
@@ -132,11 +137,11 @@ struct ScheduleView: View {
                 if team { HOPError(section: "directory") }
                 if store.loading && store.data[team ? "team" : "mine"] == nil { ProgressView("Loading published schedule…").padding(36) }
                 else if visible.isEmpty && store.errors[team ? "team" : "mine"] == nil { HOPEmpty(title: "No published shifts", detail: "There are no published assignments for this view. Draft changes stay private until your manager publishes them.", icon: "calendar") }
-                ForEach(days, id: \.self) { day in
+                ForEach(groups.keys.sorted(), id: \.self) { day in
                     HOPSection(title: HOPCalendar.label(day, format: "EEEE, MMM d")) {
-                        ForEach(visible.filter { $0.date == day }) { shift in
+                        ForEach(groups[day] ?? []) { shift in
                             Button { selected = shift; HOPStyle.haptic() } label: {
-                                ShiftRow(shift: shift, showEmployee: team, double: (team ? store.teamShifts : store.shifts).filter { $0.date == day && $0.employeeID == shift.employeeID }.count > 1)
+                                ShiftRow(shift: shift, showEmployee: team, double: (counts[day + "|" + shift.employeeID] ?? 0) > 1)
                             }.buttonStyle(.plain)
                         }
                     }
@@ -151,7 +156,7 @@ struct ScheduleView: View {
                 Button("Share printable PDF", systemImage: "doc.richtext") { export("pdf") }
                 Button("Share schedule image", systemImage: "photo") { export("png") }
                 Button("Export my shifts (.ics)", systemImage: "calendar.badge.plus") { export("ics") }
-            } label: { Image(systemName: "square.and.arrow.up") }.disabled(visible.isEmpty || store.loading)
+            } label: { Image(systemName: "square.and.arrow.up") }.disabled(visible.isEmpty)
         } }
         .sheet(item: $share) { ShareSheet(items: [$0.url]) }
         .sheet(item: $selected) { shift in
@@ -209,7 +214,7 @@ struct NotificationsView: View {
     private var records: [HOPRecord] { store.notifications.filter { (!onlyUnread || !$0.isRead) && (category == "all" || $0["category"].text == category) } }
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            LazyVStack(spacing: 16) {
                 Toggle("Unread only", isOn: $onlyUnread).padding(.horizontal, 4)
                 Picker("Message type", selection: $category) { Text("All messages").tag("all"); ForEach(Array(Set(store.notifications.map { $0["category"].text })).filter { !$0.isEmpty }.sorted(), id: \.self) { Text($0.replacingOccurrences(of: "_", with: " ").capitalized).tag($0) } }.pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
                 HOPError(section: "notifications")
@@ -249,7 +254,7 @@ struct TasksView: View {
     @State private var showDone = true
     private var assignments: [HOPRecord] { store.records("tasks", "assignments").filter { showDone || !$0["completed"].flag } }
     var body: some View {
-        ScrollView { VStack(spacing: 16) {
+        ScrollView { LazyVStack(spacing: 16) {
             WeekControl(); Toggle("Show completed tasks", isOn: $showDone); HOPError(section: "tasks")
             if store.loading && store.data["tasks"] == nil { ProgressView("Loading your assigned tasks…") }
             else if assignments.isEmpty && store.errors["tasks"] == nil { HOPEmpty(title: "No tasks in this view", detail: "Tasks follow your published shift assignments. Your manager can add tasks to a shift.", icon: "checklist") }
@@ -279,7 +284,7 @@ struct TasksView: View {
 struct PartiesView: View {
     @EnvironmentObject private var store: HOPStore
     var body: some View {
-        ScrollView { VStack(spacing: 18) {
+        ScrollView { LazyVStack(spacing: 18) {
             WeekControl(); HOPError(section: "parties")
             if store.loading && store.data["parties"] == nil { ProgressView("Loading parties…") }
             else if store.records("parties", "parties").isEmpty && store.errors["parties"] == nil { HOPEmpty(title: "No parties listed", detail: "Published party bookings for this week will appear here.", icon: "person.3") }
@@ -327,16 +332,21 @@ struct ProfileView: View {
             }
             Section("Connection") {
                 HOPError(section: "profile")
-                Button("Refresh HOP data", systemImage: "arrow.clockwise") { Task { await store.refresh() } }.disabled(store.loading)
+                Button("Refresh HOP data", systemImage: "arrow.clockwise") { Task { await store.refresh(sections: HOPRefreshPlan.all) } }.disabled(store.loading)
                 Button("Clear saved schedule copies", systemImage: "externaldrive.badge.minus") { store.clearScheduleCache() }.disabled(store.loading)
                 DisclosureGroup("Connection details") {
                     ForEach(["mine", "team", "availability", "pending", "history", "swaps", "notifications", "tasks", "parties", "profile"], id: \.self) { key in
-                        VStack(alignment: .leading, spacing: 4) { LabeledContent(key == "mine" ? "My schedule" : key.capitalized, value: store.errors[key] != nil ? "Needs attention" : store.data[key] == nil ? "Not loaded" : "Loaded"); if let error = store.errors[key] { Text(error).font(.caption).foregroundStyle(.secondary) } }
+                        VStack(alignment: .leading, spacing: 4) {
+                            LabeledContent(key == "mine" ? "My schedule" : key.capitalized, value: store.errors[key] != nil ? "Needs attention" : store.data[key] == nil ? "Loads when opened" : "Loaded")
+                            if let elapsed = store.endpointMilliseconds[key] { Text(String(format: "Last request %.0f ms", elapsed)).font(.caption).foregroundStyle(.secondary) }
+                            if let error = store.errors[key] { Text(error).font(.caption).foregroundStyle(.secondary) }
+                        }
                     }
                 }
                 Text("This app reads the existing HOP system. Draft schedules remain private. Notification feeds refresh in the foreground; native background push requires a later server and signing update.").font(.footnote).foregroundStyle(.secondary)
             }
             Section { Button("Sign out", role: .destructive) { signOut = true } }
+            Section { LabeledContent("Version", value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))") }
         }.navigationTitle("Me").sheet(isPresented: $edit) { NavigationStack { ProfileRequestView() } }
         .confirmationDialog("Sign out of HOP on this iPhone?", isPresented: $signOut, titleVisibility: .visible) { Button("Sign out", role: .destructive) { store.logout() } }
     }

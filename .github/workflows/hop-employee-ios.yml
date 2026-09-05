@@ -36,6 +36,9 @@ jobs:
           swift --version
       - name: Portable HOP contract tests
         run: swift test
+      - name: Compare schedule preparation performance
+        timeout-minutes: 5
+        run: bash scripts/benchmark-core.sh
       - name: Package unsigned SideStore IPA
         run: bash scripts/build-ipa.sh
       - name: Upload IPA

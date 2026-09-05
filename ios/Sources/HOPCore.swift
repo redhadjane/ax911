@@ -55,16 +55,20 @@ public enum HOPCalendar {
     public static var calendar: Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = zone; return c }
     public static func today(_ date: Date = Date()) -> String { key(date) }
     public static func key(_ date: Date) -> String {
-        let f = DateFormatter(); f.calendar = calendar; f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = zone; f.dateFormat = "yyyy-MM-dd"; return f.string(from: date)
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
     // Database date fields may arrive as ISO midnight timestamps. The first ten
     // characters represent the calendar date, never an instant to timezone-shift.
     public static func date(_ value: String) -> Date? {
         let text = String(value.prefix(10))
-        guard text.range(of: "^\\d{4}-\\d{2}-\\d{2}$", options: .regularExpression) != nil else { return nil }
-        let f = DateFormatter(); f.calendar = calendar; f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = zone; f.dateFormat = "yyyy-MM-dd"; f.isLenient = false
-        guard let date = f.date(from: text), key(date) == text else { return nil }
-        return calendar.date(bySettingHour: 12, minute: 0, second: 0, of: date)
+        let bytes = Array(text.utf8)
+        guard bytes.count == 10, bytes[4] == 45, bytes[7] == 45,
+              bytes.enumerated().allSatisfy({ [4, 7].contains($0.offset) || (48...57).contains($0.element) }) else { return nil }
+        let parts = text.split(separator: "-")
+        guard let year = Int(parts[0]), let month = Int(parts[1]), let day = Int(parts[2]), year > 0,
+              let date = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: 12)), key(date) == text else { return nil }
+        return date
     }
     public static func add(_ key: String, days: Int) -> String {
         guard let date = date(key), let result = calendar.date(byAdding: .day, value: days, to: date) else { return key }
@@ -89,10 +93,10 @@ public enum HOPCalendar {
         guard bits.count >= 2, let hour = Int(bits[0]), let minute = Int(bits[1].prefix(2)), (0...23).contains(hour), (0...59).contains(minute) else { return nil }
         return hour * 60 + minute
     }
+    private static let timeRangeExpression = try! NSRegularExpression(pattern: "(\\d{1,2}(?::\\d{2})?)\\s*(AM|PM)?\\s*-\\s*(\\d{1,2}(?::\\d{2})?)\\s*(AM|PM)?", options: .caseInsensitive)
     public static func labelTimes(_ label: String) -> [String] {
         let normalized = label.replacingOccurrences(of: "–", with: "-").replacingOccurrences(of: "—", with: "-").replacingOccurrences(of: "−", with: "-")
-        guard let regex = try? NSRegularExpression(pattern: "(\\d{1,2}(?::\\d{2})?)\\s*(AM|PM)?\\s*-\\s*(\\d{1,2}(?::\\d{2})?)\\s*(AM|PM)?", options: .caseInsensitive),
-              let match = regex.firstMatch(in: normalized, range: NSRange(normalized.startIndex..., in: normalized)) else { return [] }
+        guard let match = timeRangeExpression.firstMatch(in: normalized, range: NSRange(normalized.startIndex..., in: normalized)) else { return [] }
         func capture(_ i: Int) -> String { guard let range = Range(match.range(at: i), in: normalized) else { return "" }; return String(normalized[range]).uppercased() }
         func time(_ clock: String, _ meridiem: String) -> String? {
             let pieces = clock.split(separator: ":")
@@ -145,21 +149,87 @@ public struct HOPShift: Identifiable, Equatable, Sendable {
         let rows = schedule["rows"].records
         var seen = Set<String>()
         let all = schedule["entries"].records
+        // Index once per payload, not one whole-array scan for every employee.
+        func cellKey(_ entry: HOPRecord) -> String { entry["row_id"].text + "|" + entry["day_of_week"].text }
+        let cells = Dictionary(grouping: all, by: cellKey)
+        let indexedRows = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let dates = Dictionary(uniqueKeysWithValues: [0, 2, 3, 4, 5, 6].map { ($0, HOPCalendar.shiftDate(week: week, day: $0)) })
         return all.compactMap { entry -> HOPShift? in
             guard !entry["employee_id"].text.isEmpty, employeeID == nil || entry["employee_id"].text == employeeID,
                   let day = Int(entry["day_of_week"].text), [0,2,3,4,5,6].contains(day) else { return nil }
-            let cell = all.filter { $0["row_id"].text == entry["row_id"].text && $0["day_of_week"].text == entry["day_of_week"].text }
+            let cell = cells[cellKey(entry)] ?? []
             let notes = cell.map { $0.first("notes", "note").uppercased() }.joined(separator: " ")
             if notes.contains("HOP_SLOT_INACTIVE") && !notes.contains("HOP_SLOT_ACTIVE") { return nil }
-            let row = rows.first { $0.id == entry["row_id"].text } ?? HOPRecord(.object([:]))
+            let row = indexedRows[entry["row_id"].text] ?? HOPRecord(.object([:]))
             let unique = "\(entry["row_id"].text)|\(day)|\(entry["employee_id"].text)"
             guard seen.insert(unique).inserted else { return nil }
             var canonical = entry
             if let time = cell.first(where: { !$0["start_time"].text.isEmpty || !$0["shift_label"].text.isEmpty || !$0["end_time"].text.isEmpty }) {
                 for key in ["start_time", "end_time", "shift_label"] { if !time[key].text.isEmpty { canonical = canonical.setting(key, time[key]) } }
             }
-            return HOPShift(entry: canonical, row: row, date: HOPCalendar.shiftDate(week: week, day: day))
+            // Resolve legacy labels once, so row rendering need not parse them.
+            if canonical["start_time"].text.isEmpty || canonical["end_time"].text.isEmpty {
+                let times = HOPCalendar.labelTimes(canonical["shift_label"].text)
+                if canonical["start_time"].text.isEmpty, let start = times.first { canonical = canonical.setting("start_time", .string(start)) }
+                if canonical["end_time"].text.isEmpty, let end = times.last { canonical = canonical.setting("end_time", .string(end)) }
+            }
+            return HOPShift(entry: canonical, row: row, date: dates[day]!)
         }.sorted { ($0.date, $0.start, $0.id) < ($1.date, $1.start, $1.id) }
+    }
+}
+
+// Owned by HOPStore on the main actor. The input comparison happens only when
+// server state changes; SwiftUI reads already prepared arrays in constant time.
+public final class HOPScheduleProjection {
+    public private(set) var mine: [HOPShift] = []
+    public private(set) var team: [HOPShift] = []
+    public private(set) var next: [HOPShift] = []
+    public private(set) var rebuildCount = 0
+    private var lastInputs: [JSONValue] = []
+    public init() {}
+    public func update(data: [String: JSONValue], week: String, employee: HOPRecord?) {
+        let inputs = [data["mine"] ?? .null, data["team"] ?? .null, data["next"] ?? .null,
+                      data["directory"] ?? .null, .string(week), .string(employee?.id ?? ""), .string(employee?.name ?? "")]
+        guard inputs != lastInputs else { return }
+        lastInputs = inputs; rebuildCount += 1
+        guard let employee else { mine = []; team = []; next = []; return }
+        let names = Dictionary((data["directory"]?["employees"].records ?? []).map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        func prepare(_ payload: JSONValue, week: String, mine: Bool) -> [HOPShift] {
+            HOPShift.from(payload, week: week, employeeID: mine ? employee.id : nil).map { shift in
+                let resolved = names[shift.employeeID].flatMap { $0.isEmpty ? nil : $0 }
+                    ?? (shift.employeeID == employee.id ? employee.name : nil)
+                    ?? (shift.employeeName.isEmpty ? "Name unavailable" : shift.employeeName)
+                return shift.named(resolved)
+            }
+        }
+        mine = prepare(inputs[0], week: week, mine: true)
+        team = prepare(inputs[1], week: week, mine: false)
+        next = prepare(inputs[2], week: HOPCalendar.add(week, days: 7), mine: true)
+    }
+}
+
+public enum HOPRefreshPlan {
+    public static let all: Set<String> = ["mine", "team", "next", "availability", "pending", "history", "swaps", "notifications", "tasks", "parties", "directory", "profile"]
+    public static let weekScoped: Set<String> = ["mine", "team", "next", "availability", "tasks", "parties"]
+    public static func sections(for screen: HOPLink) -> Set<String> {
+        switch screen {
+        case .home: return ["mine", "next", "notifications", "profile"]
+        case .schedule: return ["mine", "team", "directory"]
+        case .requests: return ["pending", "history", "swaps", "mine"]
+        case .notifications: return ["notifications"]
+        case .tasks: return ["tasks"]
+        case .parties: return ["parties"]
+        case .availability: return ["availability"]
+        case .profile: return ["profile"]
+        case .club: return [] // Club owns its separately authenticated reads.
+        }
+    }
+    public static func afterAction(_ path: String) -> Set<String> {
+        if path.hasPrefix("/api/notifications/") { return ["notifications"] }
+        if path.hasPrefix("/api/tasks/") { return ["tasks"] }
+        if path.hasPrefix("/api/inbox/") || path.hasPrefix("/api/shift-switch/") { return ["pending", "history", "swaps", "notifications"] }
+        if path.hasPrefix("/api/availability/") { return ["availability"] }
+        return all
     }
 }
 

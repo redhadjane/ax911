@@ -17,7 +17,7 @@ struct RequestsView: View {
     private var switches: [HOPRecord] { store.records("swaps", "shift_switches").filter { terminal.contains($0.status) == history && !hidden.contains($0.id) } }
     private var storageKey: String { "hopHiddenRequests.\(store.employee?.id ?? "")" }
     var body: some View {
-        ScrollView { VStack(spacing: 18) {
+        ScrollView { LazyVStack(spacing: 18) {
             Picker("Requests", selection: $history) { Text("In progress").tag(false); Text("History").tag(true) }.pickerStyle(.segmented)
             HStack { Button("New request", systemImage: "plus") { compose = true }.buttonStyle(.borderedProminent); Button("Switch shift", systemImage: "arrow.left.arrow.right") { swap = true }.buttonStyle(.bordered) }.controlSize(.large)
             HOPError(section: "pending"); HOPError(section: "history"); HOPError(section: "swaps")
@@ -301,7 +301,7 @@ struct AvailabilityView: View {
         guard !saving && !store.busy else { return }; saving = true; defer { saving = false }; error = nil
         do {
             let result = try await store.api.request("/api/availability/employee/\(store.employee?.id ?? "")/\(confirm ? "confirm" : "save")", method: "POST", body: .object(["week_start": .string(key), "slots": .array((slots[key] ?? []).map(\.raw))]))
-            matrices[key] = result; restoreSlots(key); HOPStyle.haptic(); store.message = confirm ? "Availability confirmed and locked." : "Availability draft saved."; await store.refresh()
+            matrices[key] = result; restoreSlots(key); HOPStyle.haptic(); store.message = confirm ? "Availability confirmed and locked." : "Availability draft saved."
         } catch { self.error = error.localizedDescription }
     }
 }

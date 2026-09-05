@@ -1,0 +1,64 @@
+# Source copy: the active workflow lives in .github/workflows/hop-employee-ios.yml
+# on redhadjane/ax911's isolated hop-employee-ios branch.
+name: HOP Employee iOS build
+on:
+  push:
+    branches: [hop-employee-ios]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/hop-employee-ios.yml'
+  workflow_dispatch:
+    inputs:
+      run_simulator:
+        description: Run optional app-hosted simulator tests after packaging
+        required: false
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: hop-employee-ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-and-package:
+    runs-on: macos-15
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: ios
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report Apple build tools
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          swift --version
+      - name: Portable HOP contract tests
+        run: swift test
+      - name: Package unsigned SideStore IPA
+        run: bash scripts/build-ipa.sh
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOPEmployee-unsigned-ipa
+          path: ios/build/HOPEmployee-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+      - name: Select an installed iPhone simulator
+        if: ${{ inputs.run_simulator }}
+        id: simulator
+        run: |
+          device_id="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); devices=[d for runtime,items in data["devices"].items() if "iOS" in runtime for d in items if d.get("isAvailable") and d["name"].startswith("iPhone")]; assert devices, "No available iPhone simulator"; print(devices[0]["udid"])')"
+          printf 'uuid=%s\n' "$device_id" >> "$GITHUB_OUTPUT"
+      - name: iOS simulator tests
+        if: ${{ inputs.run_simulator }}
+        run: bash scripts/test-ios.sh '${{ steps.simulator.outputs.uuid }}'
+      - name: Upload simulator test results
+        if: ${{ always() && inputs.run_simulator }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOPEmployee-test-results
+          path: ios/build/TestResults-*.xcresult
+          if-no-files-found: warn
+          retention-days: 7

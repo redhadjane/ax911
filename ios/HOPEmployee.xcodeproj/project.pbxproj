@@ -1,0 +1,268 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A30000000000000000000001 /* HOPCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000001 /* HOPCore.swift */; };
+		A30000000000000000000002 /* HOPAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000002 /* HOPAPI.swift */; };
+		A30000000000000000000003 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000003 /* SessionStore.swift */; };
+		A30000000000000000000004 /* HOPEmployeeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000004 /* HOPEmployeeApp.swift */; };
+		A30000000000000000000005 /* WorkspaceViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000005 /* WorkspaceViews.swift */; };
+		A30000000000000000000006 /* WorkflowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000006 /* WorkflowViews.swift */; };
+		A30000000000000000000007 /* ClubViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000007 /* ClubViews.swift */; };
+		A30000000000000000000008 /* HOPCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000008 /* HOPCoreTests.swift */; };
+		A30000000000000000000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000009 /* Assets.xcassets */; };
+		A3000000000000000000000A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A4000000000000000000000A /* PrivacyInfo.xcprivacy */; };
+		A3000000000000000000000B /* HOPAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4000000000000000000000E /* HOPAPITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A50000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000001;
+			remoteInfo = HOPEmployee;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A40000000000000000000001 /* HOPCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HOPCore.swift; sourceTree = "<group>"; };
+		A40000000000000000000002 /* HOPAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HOPAPI.swift; sourceTree = "<group>"; };
+		A40000000000000000000003 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		A40000000000000000000004 /* HOPEmployeeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HOPEmployeeApp.swift; sourceTree = "<group>"; };
+		A40000000000000000000005 /* WorkspaceViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViews.swift; sourceTree = "<group>"; };
+		A40000000000000000000006 /* WorkflowViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowViews.swift; sourceTree = "<group>"; };
+		A40000000000000000000007 /* ClubViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubViews.swift; sourceTree = "<group>"; };
+		A40000000000000000000008 /* HOPCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HOPCoreTests.swift; sourceTree = "<group>"; };
+		A40000000000000000000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A4000000000000000000000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A4000000000000000000000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A4000000000000000000000C /* HOPEmployee.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HOPEmployee.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A4000000000000000000000D /* HOPCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HOPCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A4000000000000000000000E /* HOPAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HOPAPITests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A60000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A60000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A20000000000000000000001 = {
+			isa = PBXGroup;
+			children = (A20000000000000000000002 /* Sources */, A20000000000000000000003 /* Resources */, A20000000000000000000004 /* Tests */, A4000000000000000000000B /* Info.plist */, A20000000000000000000005 /* Products */);
+			sourceTree = "<group>";
+		};
+		A20000000000000000000002 /* Sources */ = {
+			isa = PBXGroup;
+			children = (A40000000000000000000001, A40000000000000000000002, A40000000000000000000003, A40000000000000000000004, A40000000000000000000005, A40000000000000000000006, A40000000000000000000007);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000003 /* Resources */ = {isa = PBXGroup; children = (A40000000000000000000009, A4000000000000000000000A); path = Resources; sourceTree = "<group>"; };
+		A20000000000000000000004 /* Tests */ = {isa = PBXGroup; children = (A40000000000000000000008, A4000000000000000000000E); path = Tests; sourceTree = "<group>"; };
+		A20000000000000000000005 /* Products */ = {isa = PBXGroup; children = (A4000000000000000000000C, A4000000000000000000000D); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000001 /* HOPEmployee */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000001;
+			buildPhases = (A90000000000000000000001 /* Prepare HOP icon */, A70000000000000000000001 /* Sources */, A60000000000000000000001 /* Frameworks */, A80000000000000000000001 /* Resources */);
+			buildRules = ();
+			dependencies = ();
+			name = HOPEmployee;
+			productName = HOPEmployee;
+			productReference = A4000000000000000000000C;
+			productType = "com.apple.product-type.application";
+		};
+		A10000000000000000000002 /* HOPCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000002;
+			buildPhases = (A70000000000000000000002 /* Sources */, A60000000000000000000002 /* Frameworks */, A80000000000000000000002 /* Resources */);
+			buildRules = ();
+			dependencies = (AB0000000000000000000001);
+			name = HOPCoreTests;
+			productName = HOPCoreTests;
+			productReference = A4000000000000000000000D;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A10000000000000000000001 = {CreatedOnToolsVersion = 16.0; };
+					A10000000000000000000002 = {CreatedOnToolsVersion = 16.0; TestTargetID = A10000000000000000000001; };
+				};
+			};
+			buildConfigurationList = AA0000000000000000000003;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = A20000000000000000000001;
+			productRefGroup = A20000000000000000000005;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (A10000000000000000000001, A10000000000000000000002);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A80000000000000000000001 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A30000000000000000000009, A3000000000000000000000A); runOnlyForDeploymentPostprocessing = 0; };
+		A80000000000000000000002 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A90000000000000000000001 /* Prepare HOP icon */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ("$(SRCROOT)/scripts/prepare-assets.sh", "$(SRCROOT)/Resources/AppIconSource.png");
+			name = "Prepare HOP icon";
+			outputPaths = ("$(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png");
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "/bin/bash \"$SRCROOT/scripts/prepare-assets.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A70000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A30000000000000000000001, A30000000000000000000002, A30000000000000000000003, A30000000000000000000004, A30000000000000000000005, A30000000000000000000006, A30000000000000000000007); runOnlyForDeploymentPostprocessing = 0; };
+		A70000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A30000000000000000000008, A3000000000000000000000B); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AB0000000000000000000001 = {isa = PBXTargetDependency; target = A10000000000000000000001; targetProxy = A50000000000000000000001; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AC0000000000000000000001 /* Debug app */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.houseofpizzagaffney.employee;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AC0000000000000000000002 /* Release app */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.houseofpizzagaffney.employee;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		AC0000000000000000000003 /* Debug tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				PRODUCT_BUNDLE_IDENTIFIER = com.houseofpizzagaffney.employee.coretests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HOPEmployee.app/HOPEmployee";
+				TEST_TARGET_NAME = HOPEmployee;
+			};
+			name = Debug;
+		};
+		AC0000000000000000000004 /* Release tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks");
+				PRODUCT_BUNDLE_IDENTIFIER = com.houseofpizzagaffney.employee.coretests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HOPEmployee.app/HOPEmployee";
+				TEST_TARGET_NAME = HOPEmployee;
+			};
+			name = Release;
+		};
+		AC0000000000000000000005 /* Debug project */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AC0000000000000000000006 /* Release project */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA0000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (AC0000000000000000000001, AC0000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		AA0000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (AC0000000000000000000003, AC0000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		AA0000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (AC0000000000000000000005, AC0000000000000000000006); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000001 /* Project object */;
+}

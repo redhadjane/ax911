@@ -8,6 +8,10 @@ enum HOPStyle {
     static let cream=Color(red:245/255,green:242/255,blue:234/255)
     static func band(_ row:J) -> Color { row["role_group"].text == "floor" ? .secondary : row["label"].text.contains("PM") ? green : .blue }
 }
+struct NativeWorkspaceBackground:View {
+    @Environment(\.colorScheme) private var scheme
+    var body:some View {(scheme == .dark ? Color(.systemGroupedBackground) : HOPStyle.cream).ignoresSafeArea()}
+}
 struct HOPPanel<Content:View>:View {
     var title:String?=nil; var subtitle:String?=nil; @ViewBuilder var content:Content
     var body:some View { VStack(alignment:.leading,spacing:16) {
@@ -78,7 +82,7 @@ struct NativeRoot:View {
             }.listStyle(.sidebar).navigationTitle("").navigationSplitViewColumnWidth(min:210,ideal:240,max:290)
         } detail: {
             NavigationStack {
-                ZStack { Color(.systemGroupedBackground).ignoresSafeArea(); destination }
+                ZStack { NativeWorkspaceBackground(); destination }
                     .navigationTitle(store.module.title).navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItemGroup(placement:.topBarTrailing) {

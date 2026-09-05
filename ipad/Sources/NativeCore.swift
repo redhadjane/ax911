@@ -75,7 +75,19 @@ enum BoardRules {
         return roles.contains { ["waitress","server","main"].contains($0) }
     }
     static func entries(_ schedule:J,row:J,day:String) -> [J] { schedule["entries"].array.filter { $0["row_id"].text == row.id && $0["day_of_week"].int == HOPDay.weekday(day) } }
-    static func closed(_ entries:[J]) -> Bool { entries.contains { $0["notes"].text.contains("HOP_SLOT_INACTIVE") } }
+    static func closed(_ entries:[J]) -> Bool { !entries.contains {$0["notes"].text.contains("HOP_SLOT_ACTIVE")} && entries.contains { $0["notes"].text.contains("HOP_SLOT_INACTIVE") } }
+    static func cellClosed(_ entries:[J],row:J,day:String)->Bool {
+        if entries.contains({!$0["employee_id"].text.isEmpty || $0["notes"].text.contains("HOP_SLOT_ACTIVE")}) {return false}
+        if closed(entries) {return true}
+        let key=row.first("row_key","key"),weekday=HOPDay.weekday(day)
+        if ["main_am1","main_am2","host_am1"].contains(key) {return weekday == 6}
+        if ["main_am3","main_am4","main_fh2","main_fh3","main_fh4"].contains(key) {return weekday != 0}
+        return false
+    }
+    static func activeNotes(_ entry:J)->String {
+        let note=entry["notes"].text.replacingOccurrences(of:"HOP_SLOT_INACTIVE",with:"").replacingOccurrences(of:"HOP_SLOT_ACTIVE",with:"").trimmingCharacters(in:.whitespacesAndNewlines)
+        return note.isEmpty ? "HOP_SLOT_ACTIVE" : note+"\nHOP_SLOT_ACTIVE"
+    }
     static func defaults(_ row:J) -> (String,String) {
         if !row["default_start_time"].text.isEmpty { return (String(row["default_start_time"].text.prefix(5)),String(row["default_end_time"].text.prefix(5))) }
         let map:[String:(String,String)] = ["AM1":("10:00","15:00"),"AM2":("11:00","16:00"),"AM3":("11:30","16:30"),"AM4":("12:00","17:00"),"PM1":("15:00","19:30"),"PM2":("16:00","20:30"),"PM3":("17:00","21:00"),"FH1":("16:00","20:30"),"FH2":("17:00","21:00"),"FH3":("17:30","21:30"),"FH4":("18:00","22:00"),"Host AM1":("11:00","16:00"),"Host PM1":("16:00","21:00"),"Host PM2":("17:00","21:00")]

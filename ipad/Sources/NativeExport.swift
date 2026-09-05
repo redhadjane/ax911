@@ -13,13 +13,31 @@ struct NativeShare:UIViewControllerRepresentable {
     func makeUIViewController(context:Context)->UIActivityViewController {UIActivityViewController(activityItems:items,applicationActivities:nil)}
     func updateUIViewController(_ controller:UIActivityViewController,context:Context) {}
 }
+struct NativePrintAction:UIViewRepresentable {
+    var document:NativeDocument
+    func makeCoordinator()->Coordinator {Coordinator(document)}
+    func makeUIView(context:Context)->UIButton {let button=UIButton(type:.system);button.setTitle(" AirPrint",for:.normal);button.setImage(UIImage(systemName:"printer"),for:.normal);button.addTarget(context.coordinator,action:#selector(Coordinator.printDocument(_:)),for:.touchUpInside);return button}
+    func updateUIView(_ button:UIButton,context:Context) {context.coordinator.document=document}
+    final class Coordinator:NSObject {
+        var document:NativeDocument
+        init(_ document:NativeDocument) {self.document=document}
+        @objc func printDocument(_ button:UIButton) {
+            let print=UIPrintInteractionController.shared,info=UIPrintInfo(dictionary:nil)
+            info.jobName=document.title;info.outputType = .general
+            let size=PDFDocument(data:document.data)?.page(at:0)?.bounds(for:.mediaBox).size ?? CGSize(width:612,height:792)
+            info.orientation=size.width>size.height ? .landscape : .portrait
+            print.printInfo=info;print.printingItem=document.data
+            print.present(from:button.bounds,in:button,animated:true,completionHandler:nil)
+        }
+    }
+}
 struct NativeDocumentPreview:View {
     @Environment(\.dismiss) var dismiss
     var document:NativeDocument
     @State private var shareURL:URL?; @State private var sharing=false; @State private var error:String?
     var body:some View {NavigationStack {NativePDFCanvas(data:document.data).navigationTitle(document.title).navigationBarTitleDisplayMode(.inline).toolbar {
         ToolbarItem(placement:.cancellationAction) {Button("Done"){dismiss()}}
-        ToolbarItemGroup(placement:.primaryAction) {Button {do {let safe=document.title.filter {$0.isLetter || $0.isNumber || $0 == " " || $0 == "-"};let url=FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString)-\(safe).pdf");try document.data.write(to:url,options:.atomic);shareURL=url;sharing=true}catch {self.error=error.localizedDescription}} label:{Label("Share PDF",systemImage:"square.and.arrow.up")};Button {let print=UIPrintInteractionController.shared;let info=UIPrintInfo(dictionary:nil);info.jobName=document.title;info.outputType = .general;print.printInfo=info;print.printingItem=document.data;print.present(animated:true)} label:{Label("AirPrint",systemImage:"printer")}}
+        ToolbarItemGroup(placement:.primaryAction) {Button {do {let safe=document.title.filter {$0.isLetter || $0.isNumber || $0 == " " || $0 == "-"};let url=FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString)-\(safe).pdf");try document.data.write(to:url,options:.atomic);shareURL=url;sharing=true}catch {self.error=error.localizedDescription}} label:{Label("Share PDF",systemImage:"square.and.arrow.up")};NativePrintAction(document:document).frame(width:105,height:44)}
     }.sheet(isPresented:$sharing,onDismiss:{if let shareURL {try? FileManager.default.removeItem(at:shareURL)};shareURL=nil}) {if let shareURL {NativeShare(items:[shareURL])}}
     .alert("Export",isPresented:Binding(get:{error != nil},set:{if !$0{error=nil}})) {Button("OK"){error=nil}} message:{Text(error ?? "")}}}
 }

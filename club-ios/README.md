@@ -1,6 +1,12 @@
 # HOP Club — native customer iPhone app
 
-Native SwiftUI customer test app using the existing HOP Club V2 customer bearer session. Independent bundle ID: `com.houseofpizza.hopclub.ios`. iOS 17+, portrait iPhone, version 0.1.0 (1). No manager/employee credentials or API routes are bundled into this client.
+Native SwiftUI customer test app using the existing HOP Club V2 customer bearer session. Independent bundle ID: `com.houseofpizza.hopclub.ios`. iOS 17+, portrait iPhone, version 0.2.0 (2). No manager/employee credentials or API routes are bundled into this client.
+
+## iOS presentation rebuild — 0.2.0
+
+Rebuilt customer presentation, not a website wrapper or manager-app clone: a membership-led Discover screen, visit stamps, horizontal restaurant offers, photo menu with category chips, large option selections, sticky bag and sheet actions, compact reward cards with readiness filtering, two-tone native membership QR card, and a redesigned account/preferences area. Warm cream/green branding adapts to dark mode. Touch feedback is optional, text uses iOS text styles, and press motion respects Reduce Motion. QR rasterization is cached per payload instead of repeating on each timer update.
+
+Menu choices are shown by name/portion/style in the bag for review; those local descriptions and image references are excluded from order submissions. Server prices, identity checks, durable request keys and staff confirmation remain unchanged. Existing users can install this over the first customer build with the same bundle/signing identity. Physical-device visual and interaction testing remains required.
 
 ## Included
 

@@ -42,6 +42,18 @@ final class ClubTests:XCTestCase {
         XCTAssertEqual(qr?.dimension,25)
         XCTAssertEqual(qr?.runs,[ClubQR.Run(x:2,y:2,width:7),ClubQR.Run(x:10,y:2,width:1),ClubQR.Run(x:2,y:3,width:1)])
     }
+    func testLocalBagDescriptionsDoNotLeakIntoOrderContract() {
+        let option:J = .object(["id":.s("pep"),"name":.s("Pepperoni")])
+        let group:J = .object(["id":.s("topping"),"options":.array([option])])
+        let item:J = .object(["id":.s("pizza"),"name":.s("Pizza"),"image_url":.s("/pizza.jpg"),"customization":.object(["modifier_groups":.array([group])])])
+        let selected:J = .object(["option_id":.s("pep"),"portion":.s("left"),"style":.s("extra"),"quantity":.n(2)])
+        let line=ClubMenuRules.line(item,size:"Large",quantity:1,selections:["topping":[selected]],notes:"")
+        XCTAssertEqual(line["display_options"].array.map(\.text),["Pepperoni · left half · extra · ×2"])
+        let request=ClubMenuRules.requestItems([line])[0]
+        XCTAssertTrue(request["display_options"].isNull)
+        XCTAssertTrue(request["image_url"].isNull)
+        XCTAssertEqual(request["modifier_selections"].array[0]["options"].array[0]["option_id"].text,"pep")
+    }
     func testRejectsUntrustedQRMarkupAndOutOfBounds() {
         for svg in ["<!DOCTYPE svg><svg/>","<svg viewBox=\"0 0 25 25\"><script>alert(1)</script></svg>","<svg viewBox=\"0 0 25 25\"><path stroke=\"#000\" d=\"M0 0h999\"/></svg>","<svg viewBox=\"0 0 25 25\"><path stroke=\"#000\" d=\"M2 2.5h7Q4 4\"/></svg>"] {XCTAssertNil(ClubQR.parse(Data(svg.utf8)))}
     }

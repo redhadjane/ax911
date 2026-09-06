@@ -42,7 +42,19 @@ enum ClubMenuRules {
         return nil
     }
     static func line(_ item:J,size:String,quantity:Int,selections:[String:[J]],notes:String)->J {
-        .object(["id":.s(UUID().uuidString),"name":item["name"],"menu_item_id":.s(item.id),"size_label":.s(size),"quantity":.n(quantity),"modifier_selections":.array(groups(item).map {group in .object(["group_id":.s(group.id),"options":.array(selections[group.id] ?? [])])}),"notes":.s(String(notes.prefix(800)))])
+        .object(["id":.s(UUID().uuidString),"name":item["name"],"image_url":item["image_url"],"display_options":.array(displayOptions(item,selections:selections).map(J.s)),"menu_item_id":.s(item.id),"size_label":.s(size),"quantity":.n(quantity),"modifier_selections":.array(groups(item).map {group in .object(["group_id":.s(group.id),"options":.array(selections[group.id] ?? [])])}),"notes":.s(String(notes.prefix(800)))])
+    }
+    // Human-readable local review only; never sent as authoritative pricing or modifiers.
+    static func displayOptions(_ item:J,selections:[String:[J]])->[String] {
+        groups(item).flatMap {group in (selections[group.id] ?? []).compactMap {selection -> String? in
+            guard let option=group["options"].array.first(where:{$0.id == selection["option_id"].text}) else{return nil}
+            var labels=[option["name"].text]
+            if selection["portion"].text == "left" {labels.append("left half")}
+            if selection["portion"].text == "right" {labels.append("right half")}
+            if !selection["style"].text.isEmpty && selection["style"].text != "regular" {labels.append(selection["style"].text == "side" ? "on the side" : selection["style"].text)}
+            if selection["quantity"].int>1 {labels.append("×\(selection["quantity"].int)")}
+            return labels.joined(separator:" · ")
+        }}
     }
     static func requestItems(_ cart:[J])->[J] {cart.map {.object(["menu_item_id":$0["menu_item_id"],"size_label":$0["size_label"],"quantity":$0["quantity"],"modifier_selections":$0["modifier_selections"],"notes":$0["notes"]])}}
 }

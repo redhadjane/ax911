@@ -47,7 +47,7 @@ struct ClubAction:View {
 }
 struct ClubHeading:View {
     var eyebrow:String;var title:String;var subtitle:String=""
-    var body:some View {VStack(alignment:.leading,spacing:9){Text(eyebrow.uppercased()).font(.caption2.weight(.bold)).tracking(2.5).foregroundStyle(ClubStyle.accent);Text(title).font(.system(.largeTitle,design:.rounded,weight:.bold)).tracking(-1);if !subtitle.isEmpty {Text(subtitle).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)}}
+    var body:some View {VStack(alignment:.leading,spacing:9){Text(eyebrow.uppercased()).font(.caption2.weight(.bold)).tracking(2.5).foregroundStyle(ClubStyle.accent);Text(title).font(.system(.largeTitle,design:.rounded,weight:.bold)).tracking(-1);if !subtitle.isEmpty {Text(subtitle).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)}}}
 }
 struct ClubSectionTitle:View {
     var title:String;var detail:String=""

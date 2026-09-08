@@ -175,6 +175,7 @@ enum AcademyEngine {
             let alternatives = catalog.concepts.filter { $0.id != c.id }.shuffled().prefix(3).map(\.term)
             q.options = ([c.term] + alternatives).shuffled(); q.answer = q.options.firstIndex(of:c.term)!
             q.prompt = "Which ISTQB concept matches your words?\n\n“\(c.intuitive)”"
+            q.explanation = c.lesson
             q.id += "-word-" + UUID().uuidString; q.context = "Vocabulary"; q.type = "terminology"
         }
         return q

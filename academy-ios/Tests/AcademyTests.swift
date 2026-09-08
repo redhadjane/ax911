@@ -120,6 +120,7 @@ final class AcademyTests: XCTestCase {
         var state=empty();let id=try start(.vocabulary,state:&state)
         let q=try AcademyEngine.question(session:state.sessions[0],catalog:catalog)
         XCTAssertEqual(Set(q.options).count,4)
+        XCTAssertEqual(q.explanation,catalog.concept(q.concept)?.lesson)
         try respond(id,state:&state)
         let e=AcademyEngine.evidence(q.objective,state:state,now:epoch)
         XCTAssertNil(e.score);XCTAssertEqual(e.vocabularyScore,100);XCTAssertTrue(state.exposedFamilies.isEmpty)

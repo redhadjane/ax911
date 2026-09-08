@@ -49,3 +49,5 @@ jobs:
           path: academy-ios/build/screenshots/*
           if-no-files-found: warn
           retention-days: 14
+      - name: Exercise native answer, resume and exam interactions
+        run: xcodebuild test -project HOPAcademy.xcodeproj -scheme HOPAcademy -destination "id=$(cat build/simulator-iphone.txt)" -derivedDataPath build/Simulator -parallel-testing-enabled NO -only-testing:HOPAcademyUITests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 90

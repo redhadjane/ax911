@@ -16,7 +16,7 @@ def capture(udid,name,args=(),appearance='light'):
     time.sleep(2)
     run('xcrun','simctl','io',udid,'screenshot',str(out/(name+'.png')))
     print('Captured '+name,flush=True)
-for family in ['iPhone','iPad']:
+for family in ['iPad','iPhone']:
     options=[d for d in available if d['name'].startswith(family)]
     device=next((d for d in options if ('Pro' in d['name'] and ('11-inch' in d['name'] if family=='iPad' else True))),options[0])
     udid=device['udid'];print('Booting '+device['name'],flush=True)
@@ -39,13 +39,6 @@ for family in ['iPhone','iPad']:
     restored=json.loads(progress.read_text())
     assert restored['sessions'][0]['id']==sid and restored['sessions'][0]['deadline']==deadline
     print(f'{family}: simulator save/relaunch/deadline check passed',flush=True)
-    if family=='iPhone':
-        log=out/'interaction-tests.log'
-        with log.open('w') as f:
-            result=subprocess.run(['xcodebuild','test','-project','HOPAcademy.xcodeproj','-scheme','HOPAcademy','-destination','id='+udid,'-derivedDataPath','build/Simulator','-parallel-testing-enabled','NO','-only-testing:HOPAcademyUITests','-test-timeouts-enabled','YES','-maximum-test-execution-time-allowance','90'],cwd=root,stdout=f,stderr=subprocess.STDOUT)
-        if result.returncode:
-            print('\n'.join(log.read_text().splitlines()[-150:]),flush=True)
-            raise RuntimeError('Simulator interaction tests failed')
-        print('iPhone: answer, feedback, resume, flag, navigation and submission tests passed',flush=True)
-    run('xcrun','simctl','shutdown',udid)
+    if family=='iPhone': (root/'build'/'simulator-iphone.txt').write_text(udid)
+    else: run('xcrun','simctl','shutdown',udid)
 (out/'warmup.png').unlink(missing_ok=True)

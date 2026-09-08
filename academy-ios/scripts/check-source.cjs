@@ -4,6 +4,8 @@ const catalog=JSON.parse(read('Resources/catalog.json'));
 assert.equal(catalog.questions.length,168);assert.equal(catalog.objectives.length,64);
 const project=read('HOPAcademy.xcodeproj/project.pbxproj');
 assert.match(project,/TARGETED_DEVICE_FAMILY="1,2"/);assert.match(project,/IPHONEOS_DEPLOYMENT_TARGET=17.0/);
+const scheme=read('HOPAcademy.xcodeproj/xcshareddata/xcschemes/HOPAcademy.xcscheme');
+for(const [,id] of scheme.matchAll(/BlueprintIdentifier="([^"]+)"/g)) assert.ok(project.includes(`${id} =`),'Scheme must reference an existing target');
 const files=fs.readdirSync(path.join(root,'Sources')).filter(f=>f.endsWith('.swift'));
 for(const file of files){assert.ok(project.includes(`Sources/${file}`));assert.doesNotMatch(read(`Sources/${file}`),/WKWebView|URLSession|api\/|AVCaptureSession|CLLocationManager/);}
 assert.match(read('Sources/AcademyApp.swift'),/NavigationSplitView/);assert.match(read('Sources/AcademyApp.swift'),/TabView/);

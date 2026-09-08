@@ -6,7 +6,12 @@ struct TodayView: View {
     var body: some View {
         PageLayout {
             HStack { Eyebrow(text:"HOP · ISTQB ACADEMY"); Spacer(); Label("Offline ready",systemImage:"checkmark.circle.fill").font(.caption2.weight(.medium)).foregroundStyle(AcademyPalette.jade) }
-            if sizeClass == .regular { HStack(alignment:.top,spacing:22) { hero; focus.frame(maxWidth:330) } }
+            if sizeClass == .regular {
+                ViewThatFits(in:.horizontal) {
+                    HStack(alignment:.top,spacing:22) { hero.frame(minWidth:420); focus.frame(width:300) }
+                    VStack(spacing:22) { hero; focus }
+                }
+            }
             else { hero }
             HStack(spacing:12) {
                 MiniMetric(value:store.accuracy.map { "\($0)%" } ?? "—",label:"Recent accuracy",icon:"scope")

@@ -267,29 +267,110 @@ struct NotificationRow: View {
 
 struct TasksView: View {
     @EnvironmentObject private var store: HOPStore
-    @State private var showDone = true
-    private var assignments: [HOPRecord] { store.records("tasks", "assignments").filter { (showDone || !$0["completed"].flag) && (store.taskShiftID == nil || $0["schedule_entry_id"].text == store.taskShiftID) } }
+    @State private var selectedDay: String?
+    @State private var showDone = false
+    private var days: [HOPTaskDay] { HOPTaskAgenda.days(store.records("tasks", "assignments"), week: store.week, shiftID: store.taskShiftID) }
+    private var dayKey: String { selectedDay ?? HOPTaskAgenda.preferredDay(days, today: HOPCalendar.today(), shiftFocused: store.taskShiftID != nil) }
+    private var day: HOPTaskDay { days.first { $0.id == dayKey } ?? HOPTaskDay(id: dayKey, tasks: []) }
     var body: some View {
-        ScrollView { LazyVStack(spacing: 16) {
-            WeekControl(); Toggle("Show completed tasks", isOn: $showDone); HOPError(section: "tasks")
-            if store.taskShiftID != nil { Button("Showing one shift · Show all my tasks") { store.taskShiftID = nil }.buttonStyle(.bordered) }
+        ScrollView { LazyVStack(alignment: .leading, spacing: 20) {
+            WeekControl()
+            if store.taskShiftID != nil { Button("Showing one shift · Show all my shifts") { store.taskShiftID = nil }.buttonStyle(.bordered) }
+            dayPicker
+            HOPError(section: "tasks")
             if store.loading && store.data["tasks"] == nil { ProgressView("Loading your assigned tasks…") }
-            else if assignments.isEmpty && store.errors["tasks"] == nil { HOPEmpty(title: "No tasks in this view", detail: "Tasks follow your published shift assignments. Your manager can add tasks to a shift.", icon: "checklist") }
-            ForEach(assignments) { task in
-                HOPCard {
-                    HStack(alignment: .top, spacing: 14) {
-                        Button { Task { await toggle(task) } } label: { Image(systemName: task["completed"].flag ? "checkmark.circle.fill" : "circle").font(.title).frame(width: 44, height: 44) }.disabled(store.busy).accessibilityLabel(task["completed"].flag ? "Reopen \(task.title)" : "Complete \(task.title)")
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(task.title).font(.headline).strikethrough(task["completed"].flag)
-                            Text("\(HOPCalendar.label(task["task_date"].text)) · \(task.first("role_label", "row_label", "assignment_label"))").font(.subheadline).foregroundStyle(.secondary)
-                            Text("\(HOPCalendar.clock(task["start_time"].text)) – \(HOPCalendar.clock(task["end_time"].text))").font(.caption).foregroundStyle(.secondary)
-                            if !task["area"].text.isEmpty { Label(task["area"].text, systemImage: "mappin").font(.caption) }
-                            if !task["notes"].text.isEmpty { Text(task["notes"].text).font(.subheadline) }
+            else if store.data["tasks"] != nil {
+                dailySummary
+                if dayKey == "undated" { Text("These assignments have no valid date. Ask your manager to check them before marking them complete.").font(.subheadline).foregroundStyle(.secondary) }
+                if day.tasks.isEmpty {
+                    HOPEmpty(title: "No tasks for this day", detail: "Tasks appear here when assigned to your published shifts. Choose another day to plan ahead.", icon: "calendar.badge.checkmark")
+                } else {
+                    Picker("Task status", selection: $showDone) {
+                        Text("To do · \(day.remaining)").tag(false)
+                        Text("Done · \(day.completed)").tag(true)
+                    }.pickerStyle(.segmented)
+                    if !day.tasks.contains(where: { $0["completed"].flag == showDone }) {
+                        HOPEmpty(title: showDone ? "Nothing completed yet" : "All done for this day", detail: showDone ? "Completed tasks stay here so you can review or reopen them." : "Your assigned checklist is complete. You can review it in Done.", icon: showDone ? "checklist" : "checkmark.seal")
+                    }
+                    ForEach(day.shifts) { shift in
+                        let visible = shift.tasks.filter { $0["completed"].flag == showDone }
+                        if !visible.isEmpty {
+                            HOPCard {
+                                shiftHeader(shift)
+                                ForEach(visible) { task in
+                                    Divider()
+                                    taskRow(task)
+                                }
+                            }
                         }
                     }
                 }
             }
-        }.padding(20) }.background(HOPStyle.background).navigationTitle("My tasks").refreshable { await store.refresh() }
+        }.padding(20) }.background(HOPStyle.background).navigationTitle("My tasks")
+            .refreshable { await store.refresh(sections: ["tasks"]) }
+            .onChange(of: store.week) { _, _ in selectedDay = nil; showDone = false }
+            .onChange(of: store.taskShiftID) { _, _ in selectedDay = nil; showDone = false }
+    }
+    private var dayPicker: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 9) {
+                    ForEach(days) { item in
+                        let selected = item.id == dayKey
+                        Button { selectedDay = item.id; showDone = false; HOPStyle.haptic() } label: {
+                            VStack(spacing: 7) {
+                                Text(item.id == "undated" ? "Check" : HOPCalendar.label(item.id, format: "EEE")).font(.caption.weight(.semibold))
+                                Text(item.id == "undated" ? "?" : HOPCalendar.label(item.id, format: "d")).font(.title2.bold())
+                                Text(item.tasks.isEmpty ? "—" : "\(item.completed)/\(item.tasks.count)").font(.caption.monospacedDigit())
+                                Circle().fill(item.id == HOPCalendar.today() ? (selected ? Color.white : HOPStyle.green) : Color.clear).frame(width: 4, height: 4)
+                            }.frame(minWidth: 52).padding(10)
+                                .foregroundStyle(selected ? Color.white : HOPStyle.green)
+                                .background(selected ? HOPStyle.hero : HOPStyle.surface, in: RoundedRectangle(cornerRadius: 18))
+                                .overlay(RoundedRectangle(cornerRadius: 18).stroke(selected ? Color.clear : HOPStyle.border))
+                        }.buttonStyle(.plain).id(item.id)
+                            .accessibilityLabel("\(item.id == "undated" ? "Date needs checking" : HOPCalendar.label(item.id)), \(item.completed) of \(item.tasks.count) tasks done\(item.id == HOPCalendar.today() ? ", today" : "")")
+                            .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
+                }.padding(.vertical, 2)
+            }.onAppear { proxy.scrollTo(dayKey, anchor: .center) }
+                .onChange(of: dayKey) { _, key in proxy.scrollTo(key, anchor: .center) }
+        }
+    }
+    private var dailySummary: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(dayKey == HOPCalendar.today() ? "TODAY'S CHECKLIST" : "DAILY CHECKLIST").font(.caption.weight(.semibold)).tracking(1.5)
+            Text(dayKey == "undated" ? "Date needs checking" : HOPCalendar.label(dayKey, format: "EEEE, MMM d")).font(.title2.bold())
+            HStack(alignment: .firstTextBaseline) {
+                Text("\(day.remaining)").font(.largeTitle.bold()).monospacedDigit()
+                Text("left to do").font(.headline)
+                Spacer()
+                Text("\(day.completed) / \(day.tasks.count) done").font(.subheadline).monospacedDigit()
+            }
+            ProgressView(value: Double(day.completed), total: Double(max(day.tasks.count, 1))).tint(.white)
+                .accessibilityLabel("Daily completion").accessibilityValue("\(day.completed) of \(day.tasks.count)")
+        }.foregroundStyle(.white).padding(22).frame(maxWidth: .infinity, alignment: .leading)
+            .background(HOPStyle.hero, in: RoundedRectangle(cornerRadius: 24))
+    }
+    private func shiftHeader(_ shift: HOPTaskShift) -> some View {
+        let task = shift.tasks[0]
+        return VStack(alignment: .leading, spacing: 6) {
+            Label(task.first("role_label", "row_label", "assignment_label"), systemImage: "person.crop.square").font(.headline).foregroundStyle(HOPStyle.green)
+            Text([task.first("row_label", "assignment_label"), "\(HOPCalendar.clock(task["start_time"].text)) – \(HOPCalendar.clock(task["end_time"].text))"].filter { !$0.isEmpty }.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
+        }
+    }
+    private func taskRow(_ task: HOPRecord) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button { Task { await toggle(task) } } label: {
+                Image(systemName: task["completed"].flag ? "checkmark.circle.fill" : "circle").font(.title2).frame(width: 44, height: 44)
+            }.buttonStyle(.plain).foregroundStyle(HOPStyle.green)
+                .disabled(store.busy || dayKey == "undated" || task["schedule_entry_id"].text.isEmpty || task["task_id"].text.isEmpty)
+                .accessibilityLabel(task["completed"].flag ? "Reopen \(task.title)" : "Complete \(task.title)")
+            VStack(alignment: .leading, spacing: 8) {
+                Text(task.title).font(.headline).strikethrough(task["completed"].flag).fixedSize(horizontal: false, vertical: true)
+                if !task["area"].text.isEmpty { Label(task["area"].text, systemImage: "mappin").font(.caption.weight(.medium)).foregroundStyle(HOPStyle.green) }
+                if !task["notes"].text.isEmpty { Text(task["notes"].text).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
+        }
     }
     private func toggle(_ task: HOPRecord) async {
         let done = !task["completed"].flag

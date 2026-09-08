@@ -6,6 +6,47 @@ import XCTest
 #endif
 
 final class HOPCoreTests: XCTestCase {
+    private func task(_ id: String, date: String, shift: String = "am", done: Bool = false) -> HOPRecord {
+        HOPRecord(.object(["assignment_id": .string(id), "task_id": .string("library-task"), "schedule_entry_id": .string(shift), "task_date": .string(date), "completed": .bool(done), "start_time": .string(shift == "am" ? "10:00" : "17:00")]))
+    }
+    func testTasksDailyDateGroupingPreservesAssignmentsAndEmptyDays() {
+        let tasks = [task("one", date: "2026-09-08T00:00:00.000Z"), task("two", date: "2026-09-09"), task("outside", date: "2026-09-15")]
+        let days = HOPTaskAgenda.days(tasks, week: "2026-09-08")
+        XCTAssertEqual(days.count, 7)
+        XCTAssertEqual(days[0].tasks.map(\.id), ["one"])
+        XCTAssertEqual(days[1].tasks.map(\.id), ["two"])
+        XCTAssertTrue(days[2].tasks.isEmpty)
+        XCTAssertEqual(days.flatMap(\.tasks).count, 2)
+        XCTAssertEqual(days[0].tasks[0].raw, tasks[0].raw)
+    }
+    func testTasksKeepDoubleShiftSeparateAndCountCompleted() {
+        let days = HOPTaskAgenda.days([task("pm", date: "2026-09-08", shift: "pm"), task("am", date: "2026-09-08", done: true)], week: "2026-09-08")
+        XCTAssertEqual(days[0].shifts.map(\.id), ["am", "pm"])
+        XCTAssertEqual(days[0].completed, 1)
+        XCTAssertEqual(days[0].remaining, 1)
+        XCTAssertEqual(days[0].shifts.flatMap(\.tasks).count, 2)
+    }
+    func testTasksOpenTodayEvenEmptyAndFocusCorrectShiftDay() {
+        let records = [task("a", date: "2026-09-10"), task("b", date: "2026-09-12", shift: "pm")]
+        let days = HOPTaskAgenda.days(records, week: "2026-09-08")
+        XCTAssertEqual(HOPTaskAgenda.preferredDay(days, today: "2026-09-08", shiftFocused: false), "2026-09-08")
+        XCTAssertEqual(HOPTaskAgenda.preferredDay(days, today: "2026-10-01", shiftFocused: false), "2026-09-10")
+        let focused = HOPTaskAgenda.days(records, week: "2026-09-08", shiftID: "pm")
+        XCTAssertEqual(focused.flatMap(\.tasks).map(\.id), ["b"])
+        XCTAssertEqual(HOPTaskAgenda.preferredDay(focused, today: "2026-09-08", shiftFocused: true), "2026-09-12")
+    }
+    func testTasksInvalidDatesAreVisibleButNotAssignedToToday() {
+        let days = HOPTaskAgenda.days([task("bad", date: "2026-02-30"), task("missing", date: "")], week: "2026-09-08")
+        XCTAssertTrue(days[0].tasks.isEmpty)
+        XCTAssertEqual(days.last?.id, "undated")
+        XCTAssertEqual(days.last?.tasks.count, 2)
+    }
+    func testTasksWeekAcrossDSTAndYearBoundaries() {
+        let days = HOPTaskAgenda.days([task("a", date: "2027-01-01")], week: "2026-12-29")
+        XCTAssertEqual(days[3].tasks.count, 1)
+        XCTAssertEqual(days[6].id, "2027-01-04")
+        XCTAssertEqual(HOPTaskAgenda.days([], week: "2026-10-27").last?.id, "2026-11-02")
+    }
     private func json(_ value: String) throws -> JSONValue { try JSONDecoder().decode(JSONValue.self, from: Data(value.utf8)) }
     private func payload(entries: [JSONValue], status: String = "published") -> JSONValue {
         .object(["schedule": .object(["status": .string(status), "rows": .array([

@@ -63,7 +63,7 @@ struct TodayWorkSummary: View {
                 if store.data["tasks"] != nil {
                     let tasks = store.records("tasks", "assignments").filter { !$0["completed"].flag && String($0["task_date"].text.prefix(10)) == HOPCalendar.today() }
                     Button { store.taskShiftID = nil; store.screen = .tasks } label: {
-                        HOPCard { Label("\(tasks.count) unfinished tasks today", systemImage: "checklist").font(.headline); Text(tasks.isEmpty ? "Open your weekly task list" : tasks.prefix(2).map(\.title).joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary) }
+                        HOPCard { Label("\(tasks.count) unfinished tasks today", systemImage: "checklist").font(.headline); Text(tasks.isEmpty ? "Open your daily checklist" : tasks.prefix(2).map(\.title).joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary) }
                     }.buttonStyle(.plain)
                 }
                 HOPError(section: "parties")

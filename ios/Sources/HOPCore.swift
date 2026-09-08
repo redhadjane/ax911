@@ -50,6 +50,48 @@ public struct HOPRecord: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+// A task remains tied to its server assignment, shift and calendar date.
+// Do not turn an undated task into a task for today or combine double shifts.
+public struct HOPTaskDay: Identifiable {
+    public let id: String
+    public let tasks: [HOPRecord]
+    public var completed: Int { tasks.filter { $0["completed"].flag }.count }
+    public var remaining: Int { tasks.count - completed }
+    public var shifts: [HOPTaskShift] {
+        var result: [HOPTaskShift] = []
+        for task in tasks {
+            let key = task["schedule_entry_id"].text
+            if let index = result.firstIndex(where: { $0.id == key }) { result[index].tasks.append(task) }
+            else { result.append(HOPTaskShift(id: key, tasks: [task])) }
+        }
+        return result.sorted {
+            let a = $0.tasks.first?["start_time"].text ?? ""
+            let b = $1.tasks.first?["start_time"].text ?? ""
+            return a == b ? $0.id < $1.id : a < b
+        }
+    }
+}
+public struct HOPTaskShift: Identifiable {
+    public let id: String
+    public var tasks: [HOPRecord]
+}
+public enum HOPTaskAgenda {
+    public static func days(_ records: [HOPRecord], week: String, shiftID: String? = nil) -> [HOPTaskDay] {
+        let keys = (0..<7).map { HOPCalendar.add(week, days: $0) }
+        let scoped = records.filter { shiftID == nil || $0["schedule_entry_id"].text == shiftID }
+        var result = keys.map { key in HOPTaskDay(id: key, tasks: scoped.filter {
+            HOPCalendar.date($0["task_date"].text) != nil && String($0["task_date"].text.prefix(10)) == key
+        }) }
+        let undated = scoped.filter { HOPCalendar.date($0["task_date"].text) == nil }
+        if !undated.isEmpty { result.append(HOPTaskDay(id: "undated", tasks: undated)) }
+        return result
+    }
+    public static func preferredDay(_ days: [HOPTaskDay], today: String, shiftFocused: Bool) -> String {
+        if !shiftFocused && days.contains(where: { $0.id == today }) { return today }
+        return days.first(where: { !$0.tasks.isEmpty })?.id ?? days.first?.id ?? today
+    }
+}
+
 public enum HOPCalendar {
     public static let zone = TimeZone(identifier: "America/New_York")!
     public static var calendar: Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = zone; return c }

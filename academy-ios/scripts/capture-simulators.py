@@ -2,7 +2,10 @@ import json,subprocess,time,os
 from pathlib import Path
 root=Path(__file__).resolve().parents[1];out=root/'build'/'screenshots';out.mkdir(parents=True,exist_ok=True)
 def run(*args,check=True):
-    return subprocess.run(args,check=check,capture_output=True,text=True)
+    # Keep simulator startup output attached to the runner. Only queries need pipes;
+    # booted processes can retain inherited pipe handles after simctl itself exits.
+    capture='list' in args or 'get_app_container' in args
+    return subprocess.run(args,check=check,capture_output=capture,text=True,timeout=240)
 devices=json.loads(run('xcrun','simctl','list','devices','available','--json').stdout)['devices']
 available=[d for runtime,ds in devices.items() if 'iOS' in runtime for d in ds if d.get('isAvailable')]
 app=root/'build'/'Simulator'/'Build'/'Products'/'Debug-iphonesimulator'/'HOPAcademy.app'
@@ -20,8 +23,11 @@ for family in ['iPad','iPhone']:
     options=[d for d in available if d['name'].startswith(family)]
     device=next((d for d in options if ('Pro' in d['name'] and ('11-inch' in d['name'] if family=='iPad' else True))),options[0])
     udid=device['udid'];print('Booting '+device['name'],flush=True)
+    run('open','-a','Simulator','--args','-CurrentDeviceUDID',udid,check=False)
     run('xcrun','simctl','boot',udid,check=False)
-    run('xcrun','simctl','bootstatus',udid,'-b')
+    try: run('xcrun','simctl','bootstatus',udid,'-b')
+    except subprocess.TimeoutExpired:
+        print('Startup exceeded four minutes; attempting app installation on the booted device.',flush=True)
     run('xcrun','simctl','status_bar',udid,'override','--time','9:41','--dataNetwork','wifi','--wifiMode','active','--wifiBars','3','--batteryState','charged','--batteryLevel','100')
     run('xcrun','simctl','install',udid,str(app))
     prefix=family.lower()

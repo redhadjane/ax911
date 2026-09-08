@@ -4,6 +4,7 @@ struct StudyWorkspace: View {
     @EnvironmentObject var store: AcademyStore
     @Environment(\.horizontalSizeClass) var sizeClass
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.dynamicTypeSize) var textSize
     let sessionID: String
     @State private var choice: Int?
     @State private var confidence: Confidence?
@@ -109,10 +110,8 @@ struct StudyWorkspace: View {
             if s.mode != .exam {
                 VStack(alignment:.leading,spacing:12) {
                     Text("How sure are you?").font(.subheadline.weight(.semibold))
-                    ViewThatFits {
-                        HStack(spacing:8) { confidenceButtons(disabled:feedback) }
-                        VStack(spacing:8) { confidenceButtons(disabled:feedback) }
-                    }
+                    if textSize >= .xxLarge { VStack(spacing:8) { confidenceButtons(disabled:feedback) } }
+                    else { HStack(spacing:8) { confidenceButtons(disabled:feedback) } }
                 }.padding(.top,8)
                 if !feedback {
                     DisclosureGroup(isExpanded:$showReasoning) {

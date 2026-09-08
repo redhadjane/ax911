@@ -15,6 +15,7 @@ struct AcademyCard<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         VStack(alignment:.leading,spacing:16) { content }
+            .fixedSize(horizontal:false,vertical:true)
             .padding(padding).frame(maxWidth:.infinity,alignment:.leading)
             .background(AcademyPalette.card,in:RoundedRectangle(cornerRadius:24,style:.continuous))
             .overlay(RoundedRectangle(cornerRadius:24,style:.continuous).strokeBorder(Color.primary.opacity(0.035)))

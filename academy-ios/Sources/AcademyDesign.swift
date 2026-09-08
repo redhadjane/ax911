@@ -28,7 +28,10 @@ struct Eyebrow: View {
 struct PrimaryAction: View {
     var title: String; var icon = "arrow.right"; var light = false; var action: () -> Void
     var body: some View {
-        Button(action:action) { HStack(spacing:10) { Text(title).font(.headline); Spacer(minLength:8); Image(systemName:icon).font(.headline) }.padding(.horizontal,19).padding(.vertical,17).frame(minHeight:54) }
+        Button(action:action) {
+            HStack(spacing:10) { Text(title).font(.headline); Spacer(minLength:8); Image(systemName:icon).font(.headline).accessibilityHidden(true) }
+                .padding(.horizontal,19).padding(.vertical,17).frame(minHeight:54).contentShape(Rectangle())
+        }
             .buttonStyle(.plain).foregroundStyle(light ? AcademyPalette.forest : Color.white)
             .background(light ? AcademyPalette.lime : AcademyPalette.forest,in:RoundedRectangle(cornerRadius:17,style:.continuous))
     }

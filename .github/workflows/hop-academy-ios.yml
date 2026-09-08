@@ -33,6 +33,10 @@ jobs:
   visual:
     runs-on: macos-15
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iPhone, iPad]
     defaults:
       run:
         working-directory: academy-ios
@@ -41,13 +45,29 @@ jobs:
       - name: Build native simulator app
         run: xcodebuild build -project HOPAcademy.xcodeproj -scheme HOPAcademy -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build/Simulator CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
       - name: Capture iPhone and iPad and verify saved exam resume
+        env:
+          ACADEMY_DEVICE: ${{ matrix.device }}
         run: python3 scripts/capture-simulators.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: HOP-Academy-Simulator-Review
+          name: HOP-Academy-${{ matrix.device }}-Simulator-Review
           path: academy-ios/build/screenshots/*
           if-no-files-found: warn
           retention-days: 14
       - name: Exercise native answer, resume and exam interactions
-        run: xcodebuild test -project HOPAcademy.xcodeproj -scheme HOPAcademy -destination "id=$(cat build/simulator-iphone.txt)" -derivedDataPath build/Simulator -parallel-testing-enabled NO -only-testing:HOPAcademyUITests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 90
+        if: matrix.device == 'iPhone'
+        run: xcodebuild test -project HOPAcademy.xcodeproj -scheme HOPAcademy -destination "id=$(cat build/simulator-iphone.txt)" -derivedDataPath build/Simulator -resultBundlePath build/UITestResults.xcresult -parallel-testing-enabled NO -only-testing:HOPAcademyUITests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 90
+      - name: Export interaction screenshots
+        if: always() && matrix.device == 'iPhone'
+        run: |
+          if [ -d build/UITestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/UITestResults.xcresult --output-path build/ui-test-attachments || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.device == 'iPhone'
+        with:
+          name: HOP-Academy-Interaction-Evidence
+          path: academy-ios/build/ui-test-attachments
+          if-no-files-found: warn
+          retention-days: 14

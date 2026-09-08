@@ -212,7 +212,10 @@ struct AnswerExplanation: View {
     var body: some View {
         let correct = choice == question.answer
         AcademyCard {
-            Label(correct ? "That’s right." : "Here’s the missing piece.",systemImage:correct ? "checkmark.circle.fill" : "lightbulb.fill").font(.headline).foregroundStyle(correct ? AcademyPalette.jade : AcademyPalette.amber).accessibilityIdentifier("study.feedback")
+            HStack(spacing:8) {
+                Image(systemName:correct ? "checkmark.circle.fill" : "lightbulb.fill").accessibilityHidden(true)
+                Text(correct ? "That’s right." : "Here’s the missing piece.").accessibilityIdentifier("study.feedback")
+            }.font(.headline).foregroundStyle(correct ? AcademyPalette.jade : AcademyPalette.amber)
             Text(question.options[question.answer]).font(.headline)
             Text(question.explanation).font(.subheadline).lineSpacing(4)
             if !correct, let choice, question.options.indices.contains(choice) { Text("Your choice: \(question.options[choice])").font(.caption).foregroundStyle(.secondary) }

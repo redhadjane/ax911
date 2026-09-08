@@ -19,7 +19,8 @@ def capture(udid,name,args=(),appearance='light'):
     time.sleep(2)
     run('xcrun','simctl','io',udid,'screenshot',str(out/(name+'.png')))
     print('Captured '+name,flush=True)
-for family in ['iPad','iPhone']:
+families=[os.environ['ACADEMY_DEVICE']] if os.environ.get('ACADEMY_DEVICE') else ['iPad','iPhone']
+for family in families:
     options=[d for d in available if d['name'].startswith(family)]
     device=next((d for d in options if ('Pro' in d['name'] and ('11-inch' in d['name'] if family=='iPad' else True))),options[0])
     udid=device['udid'];print('Booting '+device['name'],flush=True)

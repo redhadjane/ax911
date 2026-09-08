@@ -26,7 +26,16 @@ struct StudyWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement:.topBarLeading) { Button { store.presentedSession=nil } label: { Image(systemName:"xmark").font(.subheadline.weight(.semibold)).padding(7) }.accessibilityLabel("Save and close session") }
-                ToolbarItem(placement:.principal) { if let s = session { VStack(spacing:2) { Text(s.mode.title).font(.subheadline.weight(.semibold)); if let deadline = s.deadline, s.finishedAt == nil { Text(timeLeft(deadline)).font(.system(.caption,design:.monospaced,weight:.bold)).foregroundStyle(deadline.timeIntervalSince(now)<300 ? AcademyPalette.amber : AcademyPalette.jade) } else { Text("Saved on your device").font(.caption2).foregroundStyle(.secondary) } } }
+                ToolbarItem(placement:.principal) {
+                    if let s = session {
+                        VStack(spacing:2) {
+                            Text(s.mode.title).font(.subheadline.weight(.semibold))
+                            if let deadline = s.deadline, s.finishedAt == nil {
+                                Text(timeLeft(deadline)).font(.system(.caption,design:.monospaced,weight:.bold)).foregroundStyle(deadline.timeIntervalSince(now)<300 ? AcademyPalette.amber : AcademyPalette.jade)
+                            } else { Text("Saved on your device").font(.caption2).foregroundStyle(.secondary) }
+                        }
+                    }
+                }
                 ToolbarItem(placement:.topBarTrailing) { if session?.finishedAt == nil { Button(session?.mode == .exam ? "Finish" : "End") { confirmFinish=true }.font(.subheadline.weight(.semibold)) } }
             }
             .confirmationDialog(session?.mode == .exam ? "Submit your exam?" : "Finish this study session?",isPresented:$confirmFinish,titleVisibility:.visible) {
@@ -79,9 +88,9 @@ struct StudyWorkspace: View {
     private func questionHeader(_ s: StudySession, _ q: AcademyQuestion) -> some View {
         VStack(spacing:12) {
             HStack {
-                Text("QUESTION \(s.cursor+1) / \(s.targetCount)").font(.system(.caption,design:.rounded,weight:.bold)).tracking(1)
+                Text("QUESTION \(s.cursor+1) / \(s.targetCount)").font(.system(.caption,design:.rounded,weight:.bold)).tracking(1).accessibilityIdentifier("study.position")
                 Spacer()
-                if s.mode == .exam { Button { navigator=true } label: { Label("\(answered(s))/40 saved",systemImage:"square.grid.3x3").font(.caption.weight(.semibold)) } }
+                if s.mode == .exam { Button { navigator=true } label: { Label("\(answered(s))/40 saved",systemImage:"square.grid.3x3").font(.caption.weight(.semibold)) }.accessibilityIdentifier("exam.navigator") }
                 else { Label(q.context,systemImage:q.context == "HOP" ? "building.2" : "globe").font(.caption).foregroundStyle(.secondary) }
             }
             ProgressView(value:Double(s.cursor+1),total:Double(s.targetCount)).tint(AcademyPalette.jade)
@@ -122,7 +131,7 @@ struct StudyWorkspace: View {
                     .background(confidence == item ? AcademyPalette.jade.opacity(0.15) : AcademyPalette.canvas,in:RoundedRectangle(cornerRadius:13))
                     .overlay(RoundedRectangle(cornerRadius:13).strokeBorder(confidence == item ? AcademyPalette.jade : Color.clear))
                     .foregroundStyle(confidence == item ? AcademyPalette.jade : Color.primary)
-            }.buttonStyle(.plain).disabled(disabled).accessibilityAddTraits(confidence == item ? .isSelected : [])
+            }.buttonStyle(.plain).disabled(disabled).accessibilityAddTraits(confidence == item ? .isSelected : []).accessibilityIdentifier("confidence.\(item.rawValue)")
         }
     }
     private func option(_ s: StudySession, _ q: AcademyQuestion, _ index: Int, feedback: Bool) -> some View {
@@ -141,7 +150,7 @@ struct StudyWorkspace: View {
                 .background((selected || right ? color.opacity(0.07) : AcademyPalette.canvas.opacity(0.5)),in:RoundedRectangle(cornerRadius:17))
                 .overlay(RoundedRectangle(cornerRadius:17).strokeBorder(selected || right ? color : Color.primary.opacity(0.08),lineWidth:selected || right ? 1.8 : 1))
         }.buttonStyle(.plain).disabled(feedback).keyboardShortcut(KeyEquivalent(Character(String(index+1))),modifiers:[])
-            .accessibilityLabel("\(String(UnicodeScalar(65+index)!)). \(q.options[index])").accessibilityAddTraits(selected ? .isSelected : [])
+            .accessibilityLabel("\(String(UnicodeScalar(65+index)!)). \(q.options[index])").accessibilityAddTraits(selected ? .isSelected : []).accessibilityIdentifier("answer.\(index)")
     }
     private func bottomAction(_ s: StudySession, _ q: AcademyQuestion, feedback: Bool) -> some View {
         VStack(spacing:8) {
@@ -186,7 +195,7 @@ struct StudyWorkspace: View {
                                 VStack(spacing:3) { Text("\(i+1)").font(.headline).monospacedDigit(); Image(systemName:s.flags.contains(i) ? "flag.fill" : s.answers[s.questionIDs[i]] != nil ? "checkmark" : "circle").font(.system(size:9)) }.frame(maxWidth:.infinity).frame(height:59)
                                     .background(s.answers[s.questionIDs[i]] != nil ? AcademyPalette.jade.opacity(0.16) : AcademyPalette.canvas,in:RoundedRectangle(cornerRadius:12))
                                     .overlay(RoundedRectangle(cornerRadius:12).strokeBorder(i == s.cursor ? AcademyPalette.jade : .clear,lineWidth:2))
-                            }.buttonStyle(.plain).accessibilityLabel("Question \(i+1), \(s.answers[s.questionIDs[i]] != nil ? "answered" : "unanswered")\(s.flags.contains(i) ? ", flagged" : "")")
+                            }.buttonStyle(.plain).accessibilityLabel("Question \(i+1), \(s.answers[s.questionIDs[i]] != nil ? "answered" : "unanswered")\(s.flags.contains(i) ? ", flagged" : "")").accessibilityIdentifier("exam.question.\(i)")
                         }
                     }
                     PrimaryAction(title:"Submit exam",icon:"checkmark.seal") { navigator=false; confirmFinish=true }
@@ -204,7 +213,7 @@ struct AnswerExplanation: View {
     var body: some View {
         let correct = choice == question.answer
         AcademyCard {
-            Label(correct ? "That’s right." : "Here’s the missing piece.",systemImage:correct ? "checkmark.circle.fill" : "lightbulb.fill").font(.headline).foregroundStyle(correct ? AcademyPalette.jade : AcademyPalette.amber)
+            Label(correct ? "That’s right." : "Here’s the missing piece.",systemImage:correct ? "checkmark.circle.fill" : "lightbulb.fill").font(.headline).foregroundStyle(correct ? AcademyPalette.jade : AcademyPalette.amber).accessibilityIdentifier("study.feedback")
             Text(question.options[question.answer]).font(.headline)
             Text(question.explanation).font(.subheadline).lineSpacing(4)
             if !correct, let choice, question.options.indices.contains(choice) { Text("Your choice: \(question.options[choice])").font(.caption).foregroundStyle(.secondary) }
@@ -229,7 +238,7 @@ struct SessionResults: View {
                 let score=attempts.filter(\.correct).count
                 VStack(alignment:.leading,spacing:18) {
                     Eyebrow(text:s.mode == .exam ? "BENCHMARK COMPLETE" : "A LITTLE FURTHER FORWARD",color:AcademyPalette.lime)
-                    Text("\(score) / \(attempts.count)").font(.system(size:56,weight:.bold,design:.rounded)).monospacedDigit()
+                    Text("\(score) / \(attempts.count)").font(.system(size:56,weight:.bold,design:.rounded)).monospacedDigit().accessibilityIdentifier("results.score")
                     Text(s.mode == .exam ? (score >= 26 ? "Above the official pass threshold." : "You’ve found your next study targets.") : "Every answer gives you a clearer next step.").font(.title3.weight(.semibold))
                     if s.mode == .exam { Text(s.unseen ? "Unseen mock · 26/40 passes · Academy aims for 34/40+" : "Mixed practice · Excluded from unseen readiness").font(.caption).foregroundStyle(.white.opacity(0.75)) }
                     PrimaryAction(title:"Back to your learning space",light:true) { store.presentedSession=nil }

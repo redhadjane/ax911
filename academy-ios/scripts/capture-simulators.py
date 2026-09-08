@@ -39,5 +39,13 @@ for family in ['iPhone','iPad']:
     restored=json.loads(progress.read_text())
     assert restored['sessions'][0]['id']==sid and restored['sessions'][0]['deadline']==deadline
     print(f'{family}: simulator save/relaunch/deadline check passed',flush=True)
+    if family=='iPhone':
+        log=out/'interaction-tests.log'
+        with log.open('w') as f:
+            result=subprocess.run(['xcodebuild','test','-project','HOPAcademy.xcodeproj','-scheme','HOPAcademy','-destination','id='+udid,'-derivedDataPath','build/Simulator','-parallel-testing-enabled','NO','-only-testing:HOPAcademyUITests','-test-timeouts-enabled','YES','-maximum-test-execution-time-allowance','90'],cwd=root,stdout=f,stderr=subprocess.STDOUT)
+        if result.returncode:
+            print('\n'.join(log.read_text().splitlines()[-150:]),flush=True)
+            raise RuntimeError('Simulator interaction tests failed')
+        print('iPhone: answer, feedback, resume, flag, navigation and submission tests passed',flush=True)
     run('xcrun','simctl','shutdown',udid)
 (out/'warmup.png').unlink(missing_ok=True)

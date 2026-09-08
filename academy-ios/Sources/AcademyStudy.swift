@@ -126,7 +126,7 @@ struct StudyWorkspace: View {
     @ViewBuilder private func confidenceButtons(disabled: Bool) -> some View {
         ForEach(Confidence.allCases,id:\.rawValue) { item in
             Button { confidence=item } label: {
-                HStack(spacing:5) { Image(systemName:item == .guess ? "questionmark" : item == .unsure ? "circle.lefthalf.filled" : "checkmark"); Text(item.title) }.font(.subheadline.weight(.medium)).frame(maxWidth:.infinity).padding(.vertical,13).padding(.horizontal,9)
+                HStack(spacing:5) { Image(systemName:item == .guess ? "questionmark" : item == .unsure ? "circle.lefthalf.filled" : "checkmark").accessibilityHidden(true); Text(item.title).lineLimit(1).minimumScaleFactor(0.75) }.font(.subheadline.weight(.medium)).frame(maxWidth:.infinity).padding(.vertical,13).padding(.horizontal,9)
                     .background(confidence == item ? AcademyPalette.jade.opacity(0.15) : AcademyPalette.canvas,in:RoundedRectangle(cornerRadius:13))
                     .overlay(RoundedRectangle(cornerRadius:13).strokeBorder(confidence == item ? AcademyPalette.jade : Color.clear))
                     .foregroundStyle(confidence == item ? AcademyPalette.jade : Color.primary)

@@ -65,6 +65,7 @@ struct HomeView: View {
                         QuickAction(title: "My profile", icon: "person.crop.circle", route: .profile)
                     }
                 }
+                HomeMessagesCard()
                 TodayWorkSummary()
                 HOPError(section: "notifications")
                 if !store.notifications.isEmpty {
@@ -72,7 +73,7 @@ struct HomeView: View {
                         ForEach(highlightedMessages) { record in
                             Button { Task { await store.openNotification(record) } } label: { NotificationRow(record: record) }.buttonStyle(.plain).disabled(store.busy)
                         }
-                        Button("View all messages") { store.screen = .notifications }.frame(minHeight: 44)
+                        Button("View all alerts") { store.inboxSection = "alerts"; store.screen = .notifications }.frame(minHeight: 44)
                     }
                 }
                 if let refreshed = store.lastRefresh { Text("Last sync \(refreshed.formatted(date: .omitted, time: .shortened)) · Device local time").font(.caption).foregroundStyle(.secondary) }
@@ -182,6 +183,13 @@ struct ScheduleView: View {
                             Button("Request a shift switch", systemImage: "arrow.left.arrow.right") { showSwap = true }
                             Button("View shift tasks", systemImage: "checklist") { selected = nil; store.taskShiftID = shift.id; store.screen = .tasks }
                         } footer: { Text("A switch is not final until the other employee accepts and a manager approves.") }
+                    } else if UUID(uuidString: shift.employeeID) != nil {
+                        Section {
+                            Button("Message teammate", systemImage: "bubble.left.and.bubble.right") {
+                                Task { if let id = await store.messages.direct(to: shift.employeeID) { selected = nil; store.openMessages(threadID: id) } }
+                            }.disabled(store.messages.actionBusy)
+                            if let error = store.messages.error { Text(error).font(.footnote).foregroundStyle(.red) }
+                        }
                     }
                 }.navigationTitle("Shift details").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { selected = nil } } }
@@ -417,6 +425,8 @@ struct ProfileView: View {
                 Button("Request profile or PIN change", systemImage: "person.crop.circle.badge.pencil") { edit = true }
             } footer: { Text("Profile, photo and PIN changes are reviewed by your manager. Your current PIN is never downloaded or displayed.") }
             Section("Your work") {
+                Button("Team messages", systemImage: "bubble.left.and.bubble.right") { store.openMessages() }
+                Button("HOP alerts", systemImage: "bell.badge") { store.inboxSection = "alerts"; store.screen = .notifications }
                 Button("Availability", systemImage: "calendar.badge.checkmark") { store.screen = .availability }
                 Button("Shift tasks", systemImage: "checklist") { store.screen = .tasks }
                 Button("Parties this week", systemImage: "person.3") { store.screen = .parties }

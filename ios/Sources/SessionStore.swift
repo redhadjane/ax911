@@ -54,10 +54,19 @@ enum SessionKeychain {
 }
 
 @MainActor final class HOPStore: ObservableObject {
-    let api = HOPAPI()
+    let api: HOPAPI
+    let messages: HOPMessages
+    init() {
+        let client = HOPAPI(); api = client; messages = HOPMessages(api: client)
+        messages.sessionExpired = { [weak self] in
+            self?.logout(); self?.loginError = "Your sign-in expired. Enter your PIN again."
+        }
+    }
     private let scheduleProjection = HOPScheduleProjection()
     @Published var employee: HOPRecord? { didSet { prepareSchedule() } }
     @Published var screen: HOPLink = .home
+    @Published var inboxSection = "messages"
+    @Published var messageThreadID: String?
     var presentedScreen: HOPLink?
     @Published var week = HOPCalendar.tuesday(HOPCalendar.today()) { didSet { prepareSchedule() } }
     @Published var data: [String: JSONValue] = [:] { didSet { prepareSchedule() } }
@@ -85,6 +94,7 @@ enum SessionKeychain {
         guard let encoded = SessionKeychain.read(), let session = try? JSONDecoder().decode(EmployeeSession.self, from: encoded) else { return }
         guard session.expiresAt > Date() else { logout(); loginError = "Please sign in again to see your latest schedule."; return }
         sessionVersion += 1; employee = session.employee; expiry = session.expiresAt; HOPDeviceAlerts.shared.setEmployee(session.employee.id); await api.authorize(session.token, version: sessionVersion)
+        messages.bind(session.employee.id)
         loadSnapshot()
         await refresh()
     }
@@ -99,6 +109,7 @@ enum SessionKeychain {
             let session = EmployeeSession(employee: minimalIdentity(person), token: token, expiresAt: Date().addingTimeInterval(result["expires_in"].number))
             try SessionKeychain.write(JSONEncoder().encode(session))
             employee = person; expiry = session.expiresAt; HOPDeviceAlerts.shared.setEmployee(person.id); week = HOPCalendar.tuesday(HOPCalendar.today()); screen = .home; await api.authorize(token, version: attempt)
+            messages.bind(person.id)
             loadSnapshot()
             await refresh()
         } catch { loginError = error.localizedDescription }
@@ -107,6 +118,7 @@ enum SessionKeychain {
         if let employee { ScheduleCache.clear(employee: employee.id) }
         sessionVersion += 1; let version = sessionVersion
         generation += 1; SessionKeychain.clear(); SessionKeychain.clear(account: "club")
+        messages.bind(""); messageThreadID = nil; inboxSection = "messages"
         inFlight = [:]; loadedAt = [:]; endpointMilliseconds = [:]; presentedScreen = nil
         focusedShiftID = nil; taskShiftID = nil; inAppAlert = nil; seenNotificationIDs = nil; HOPDeviceAlerts.shared.setEmployee("")
         employee = nil; data = [:]; errors = [:]; expiry = .distantPast; loading = false; message = nil; lastRefresh = nil
@@ -235,16 +247,20 @@ enum SessionKeychain {
     }
     var notifications: [HOPRecord] { data["notifications"]?["notifications"].records ?? [] }
     var unread: Int { notifications.filter { !$0.isRead }.count }
+    func openMessages(threadID: String? = nil) {
+        inboxSection = "messages"; messageThreadID = threadID; screen = .notifications
+    }
     func records(_ section: String, _ key: String) -> [HOPRecord] { data[section]?[key].records ?? [] }
     func openNotification(_ record: HOPRecord) async {
         let version = sessionVersion
         let route = HOPLink.notification(record), payload = record["payload"]
-        let date = payload["week_start"].text.isEmpty ? payload["date"].text : payload["week_start"].text
+        let date = HOPChatPolicy.reminderWeek(record) ?? (payload["week_start"].text.isEmpty ? payload["date"].text : payload["week_start"].text)
         if [.schedule, .tasks, .parties, .availability].contains(route), HOPCalendar.date(date) != nil { await selectWeek(date) }
         guard employee != nil, version == sessionVersion else { return }
         if route == .schedule { focusedShiftID = payload["schedule_entry_id"].text.isEmpty ? nil : payload["schedule_entry_id"].text }
         if route == .tasks { taskShiftID = payload["schedule_entry_id"].text.isEmpty ? nil : payload["schedule_entry_id"].text }
-        screen = route
+        if route == .messages { openMessages(threadID: HOPChatPolicy.conversationID(from: payload["url"].text)) }
+        else { if route == .notifications { inboxSection = "alerts" }; screen = route }
         if !record.isRead { _ = await act("/api/notifications/\(record.id)/read", success: "Notification read") }
     }
     private func updateAlertBanner() {

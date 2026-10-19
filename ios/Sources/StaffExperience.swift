@@ -189,6 +189,7 @@ struct AlertSettingsView: View {
     @AppStorage("hopAlertTasks") private var tasks = true
     @AppStorage("hopAlertParties") private var parties = true
     @AppStorage("hopAlertOther") private var other = true
+    @AppStorage("hopAlertMessages") private var messages = true
     var body: some View {
         Form {
             Section {
@@ -199,7 +200,7 @@ struct AlertSettingsView: View {
                 Button("Open iPhone notification settings") { if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) } }
                 Button("Test local notification") { Task { await alerts.test() } }
                 Text(alerts.status).font(.footnote).foregroundStyle(.secondary)
-            } header: { Text("Delivery status") } footer: { Text("Background server push needs an Apple push-enabled signing profile and HOP server setup. The local test does not verify server delivery.") }
+            } header: { Text("Delivery status") } footer: { Text("This SideStore build checks for chat and HOP alerts while open. Real background push requires paid Apple push-enabled signing and HOP server setup; the local test does not verify server delivery. Web-app push remains separate.") }
             Section {
                 Toggle("Remind me before my shift", isOn: $reminders)
                 Picker("Remind me", selection: $lead) { ForEach([15,30,60,120], id: \.self) { Text("\($0) minutes before").tag($0) } }.disabled(!reminders)
@@ -207,13 +208,17 @@ struct AlertSettingsView: View {
                 Toggle("Show shift details in alerts", isOn: $previews)
             } header: { Text("Shift reminders on this iPhone") } footer: { Text("Only your published shifts are eligible. Reminders use Gaffney time and the schedules last loaded here. Open HOP after schedule changes; remote changes cannot update local reminders while HOP is closed. Reminders stop at session expiry.") }
             Section {
-                Toggle("Show new-message banners", isOn: $banners)
+                Toggle("Show in-app banners", isOn: $banners)
+                Toggle("Team messages", isOn: $messages)
                 Toggle("Schedule updates", isOn: $schedule)
                 Toggle("Requests and shift switches", isOn: $requests)
                 Toggle("Tasks", isOn: $tasks)
                 Toggle("Parties", isOn: $parties)
                 Toggle("Announcements and other messages", isOn: $other)
             } header: { Text("While HOP is open") } footer: { Text("These filters control in-app banners only. All messages remain in your Inbox.") }
+            Section {
+                Text("Availability reminders are managed by HOP. The default is Thursday and Friday at 4 PM, Gaffney time, for employees who have not confirmed next week's availability. Open a reminder in Inbox → Alerts to go to the correct week.").font(.footnote)
+            } header: { Text("Weekly planning") }
             Section {
                 Toggle("Use quiet hours", isOn: $quiet)
                 Picker("Start", selection: $quietStart) { ForEach(0..<24) { Text(HOPCalendar.clock(String(format: "%02d:00", $0))).tag($0 * 60) } }.disabled(!quiet)

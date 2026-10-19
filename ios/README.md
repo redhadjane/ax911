@@ -2,7 +2,25 @@
 
 Native SwiftUI client for the existing HOP system. iOS 17+, Apple SDKs only, no WebView or bundled business records. This is a separate testing client; it does not replace the employee website or manager desktop.
 
-## Version 0.2.0 (build 3)
+## Version 0.3.0 (build 5)
+
+Native messaging is connected to the same staff-messaging API as employee web and
+manager Command. Inbox now has Messages and Alerts: private teammate chats,
+role-based team groups, manager announcements, unread/read state, history paging,
+mute, block/unblock and explicit single-message reporting. Managers can review
+reported messages without access to unrelated private chats. Message a teammate
+directly from their published schedule shift.
+
+Drafts are held in memory only and cleared at sign-out. Retrying an unconfirmed
+send reuses its client UUID so the server can prevent duplicates. Chat refreshes
+are separate from schedule refreshes. Chats refresh while foregrounded, not while
+closed. Existing web push is not native APNs; free-account SideStore signing does
+not enable native background push. Do not treat local notifications as a push test.
+
+Weekly availability reminders open their intended next Tuesday week. The server
+controls recipients and timing; the native client does not schedule duplicate
+weekly reminders. Existing day-by-day task checklists, team/week/day schedules,
+requests, exports, profile approvals and loyalty workflows are retained.
 
 Warm HOP brand colors in light/dark mode, a published Everyone/My shifts weekly
 board with role filters and shift details, Today task/party shortcuts, and real
@@ -41,5 +59,5 @@ Full Xcode with the iPhoneOS SDK is required. The build prepares the app icon, a
 - HTTPS API client; private Keychain sessions; account-scoped, labeled published schedule cache.
 - No employee records, customer records, backend configuration, credentials, or internal audit reports in this source distribution.
 - Notifications refresh while active. Native background APNs is not implemented or claimed; existing browser push remains separate.
-- `Tests/HOPCoreTests.swift` runs through Swift Package Manager. App-hosted API transport tests require the optional Xcode simulator run and use intercepted test traffic.
+- Swift Package Manager runs date/schedule/task contracts, mocked API transport, and messaging policy/store tests on the Mac runner without a simulator. No test sends real messages or changes production records.
 - Signed-device login, camera, Keychain, accessibility, exports, and live workflow acceptance remain necessary even after compilation succeeds.

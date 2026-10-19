@@ -48,6 +48,7 @@ actor HOPAPI {
         guard let http = response as? HTTPURLResponse else { throw HOPAPIError(status: 0, message: "HOP returned an unreadable response.") }
         let decoded = try? JSONDecoder().decode(JSONValue.self, from: data)
         guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode >= 500 { throw HOPAPIError(status: http.statusCode, message: "HOP is temporarily unavailable. Please try again shortly; your changes have not been confirmed.") }
             let userMessage = decoded?["user_message"].text ?? ""
             let detail = !userMessage.isEmpty ? userMessage : decoded?["error"].text ?? ""
             let alternate = decoded?["message"].text ?? ""

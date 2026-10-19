@@ -1,8 +1,12 @@
 import Foundation
 import XCTest
+#if canImport(HOPCore)
+@testable import HOPCore
+#else
 @testable import HOPEmployee
+#endif
 
-// Xcode app-hosted tests only. Every request is intercepted; these tests never
+// Every request is intercepted, both on the Mac runner and in Xcode; never
 // connect to the live HOP server or use a real employee credential.
 final class HOPAPITests: XCTestCase {
     private func client(path: String, status: Int = 200, response: String = "{\"ok\":true}",

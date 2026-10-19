@@ -264,6 +264,7 @@ public enum HOPRefreshPlan {
         case .availability: return ["availability"]
         case .profile: return ["profile"]
         case .club: return [] // Club owns its separately authenticated reads.
+        case .messages: return [] // Messaging has independent, account-scoped refreshes.
         }
     }
     public static func afterAction(_ path: String) -> Set<String> {
@@ -275,10 +276,11 @@ public enum HOPRefreshPlan {
     }
 }
 
-public enum HOPLink: String, Hashable, Sendable { case home, schedule, requests, notifications, profile, availability, tasks, parties, club
+public enum HOPLink: String, Hashable, Sendable { case home, schedule, requests, notifications, profile, availability, tasks, parties, club, messages
     public static func notification(_ record: HOPRecord) -> HOPLink {
         let p = record["payload"]
         let hint = [record["category"].text, p["type"].text, p["url"].text, p["screen"].text, p["route"].text, record["title"].text].joined(separator: " ").lowercased()
+        if record["category"].text == "staff_message" || p["type"].text == "staff_message" || p["url"].text.contains("/messages/#") { return .messages }
         if hint.contains("shift_switch") || hint.contains("shift-switch") || hint.contains("request") { return .requests }
         if hint.contains("availab") { return .availability }
         if hint.contains("schedule") { return .schedule }

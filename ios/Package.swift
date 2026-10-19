@@ -1,18 +1,17 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
-// Portable contract/date tests only. The application is built by the Xcode project.
+// Mac-hosted contracts and mocked transport/store tests, without an iOS simulator.
 let package = Package(
     name: "HOPCore",
     platforms: [.iOS(.v17), .macOS(.v13)],
     products: [.library(name: "HOPCore", targets: ["HOPCore"])],
     targets: [
         .target(name: "HOPCore", path: "Sources",
-                exclude: ["HOPAPI.swift", "SessionStore.swift", "HOPEmployeeApp.swift",
+                exclude: ["SessionStore.swift", "HOPEmployeeApp.swift", "MessagingViews.swift",
                           "WorkspaceViews.swift", "WorkflowViews.swift", "ClubViews.swift", "StaffExperience.swift"],
-                sources: ["HOPCore.swift"]),
+                sources: ["HOPCore.swift", "HOPAPI.swift", "StaffMessagesCore.swift", "MessagingStore.swift"]),
         .testTarget(name: "HOPCoreTests", dependencies: ["HOPCore"], path: "Tests",
-                    exclude: ["HOPAPITests.swift"],
-                    sources: ["HOPCoreTests.swift"])
+                    sources: ["HOPCoreTests.swift", "HOPAPITests.swift", "StaffMessagesTests.swift"])
     ]
 )

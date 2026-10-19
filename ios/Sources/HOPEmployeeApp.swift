@@ -6,7 +6,7 @@ import UIKit
     @AppStorage("hopAppearance") private var appearance = "system"
     var body: some Scene {
         WindowGroup {
-            HOPRoot().environmentObject(store)
+            HOPRoot().environmentObject(store).environmentObject(store.messages)
                 .tint(HOPStyle.green)
                 .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
         }
@@ -35,6 +35,7 @@ extension HOPLink: Identifiable { public var id: String { rawValue } }
 
 struct HOPRoot: View {
     @EnvironmentObject private var store: HOPStore
+    @EnvironmentObject private var chat: HOPMessages
     @Environment(\.scenePhase) private var phase
     @State private var feature: HOPLink?
     @ObservedObject private var alerts = HOPDeviceAlerts.shared
@@ -46,7 +47,7 @@ struct HOPRoot: View {
                     NavigationStack { HomeView() }.tabItem { Label("Today", systemImage: "sun.max") }.tag(HOPLink.home)
                     NavigationStack { ScheduleView() }.tabItem { Label("Schedule", systemImage: "calendar") }.tag(HOPLink.schedule)
                     NavigationStack { RequestsView() }.tabItem { Label("Requests", systemImage: "arrow.left.arrow.right") }.tag(HOPLink.requests)
-                    NavigationStack { NotificationsView() }.tabItem { Label("Inbox", systemImage: "bell") }.badge(store.unread).tag(HOPLink.notifications)
+                    NavigationStack { InboxHubView() }.tabItem { Label("Inbox", systemImage: "bubble.left.and.bubble.right") }.badge(store.unread + chat.unread).tag(HOPLink.notifications)
                     NavigationStack { ProfileView() }.tabItem { Label("Me", systemImage: "person.crop.circle") }.tag(HOPLink.profile)
                 }
                 .sheet(item: $feature) { route in
@@ -63,6 +64,7 @@ struct HOPRoot: View {
                     }
                 }
                 .onChange(of: store.screen) { _, route in
+                    if route == .messages { store.openMessages(); return }
                     if [.availability, .tasks, .parties, .club].contains(route) {
                         store.presentedScreen = route; feature = route; store.screen = .profile
                         if route != .availability { Task { await store.ensureLoaded(route) } }
@@ -76,17 +78,23 @@ struct HOPRoot: View {
         }
         .task { if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil { await store.restore() } }
         .task(id: phase) {
+            chat.foreground = phase == .active
             guard phase == .active else { return }
+            if store.employee != nil { await chat.refreshSummary() }
             var tick = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(20))
                 guard !Task.isCancelled else { break }
                 tick += 1
                 if store.employee != nil && !store.busy && !store.loading { if tick % 3 == 0 { await store.refresh() } else { await store.refreshNotifications() } }
+                if store.employee != nil { await chat.refreshSummary() }
             }
         }
         .onChange(of: phase) { _, value in if value == .active, store.employee != nil, !store.busy { Task { await store.ensureLoaded(store.presentedScreen ?? store.screen) } } }
-        .onChange(of: store.employee?.id) { _, value in if value == nil { feature = nil } }
+        .onChange(of: store.employee?.id) { _, value in
+            if value == nil { feature = nil }
+            else { Task { await chat.loadSession(); await chat.refreshSummary() } }
+        }
         .task(id: "\(store.employee?.id ?? "")|\(alerts.destination?.id.uuidString ?? "")") {
             if let destination = alerts.destination, store.employee?.id == destination.employeeID {
                 await store.selectWeek(destination.date)
@@ -104,6 +112,14 @@ struct HOPRoot: View {
                     }.buttonStyle(.plain)
                     Spacer(minLength: 0)
                     Button { store.inAppAlert = nil } label: { Image(systemName: "xmark").frame(width: 44, height: 44) }.accessibilityLabel("Dismiss notification")
+                }.padding(16).background(HOPStyle.paper, in: RoundedRectangle(cornerRadius: 22)).overlay(RoundedRectangle(cornerRadius: 22).stroke(HOPStyle.border)).shadow(color: .black.opacity(0.12), radius: 16, y: 6).padding(12)
+            } else if let alert = chat.alert, phase == .active {
+                HStack(spacing: 12) {
+                    Button { chat.alert = nil; store.openMessages(threadID: alert.conversationID) } label: {
+                        Label { VStack(alignment: .leading, spacing: 5) { Text(alert.title).font(.headline); Text("New team message").font(.subheadline) } } icon: { Image(systemName: "bubble.left.and.bubble.right.fill") }
+                    }.buttonStyle(.plain)
+                    Spacer(minLength: 0)
+                    Button { chat.alert = nil } label: { Image(systemName: "xmark").frame(width: 44, height: 44) }.accessibilityLabel("Dismiss message")
                 }.padding(16).background(HOPStyle.paper, in: RoundedRectangle(cornerRadius: 22)).overlay(RoundedRectangle(cornerRadius: 22).stroke(HOPStyle.border)).shadow(color: .black.opacity(0.12), radius: 16, y: 6).padding(12)
             }
         }

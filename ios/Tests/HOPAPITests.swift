@@ -9,6 +9,14 @@ import XCTest
 // Every request is intercepted, both on the Mac runner and in Xcode; never
 // connect to the live HOP server or use a real employee credential.
 final class HOPAPITests: XCTestCase {
+    func testOldSessionCannotIssueRequestsWithNewAccountsCredential() async throws {
+        let config = URLSessionConfiguration.ephemeral; config.protocolClasses = [HOPTransportProtocol.self]
+        let session = URLSession(configuration: config), api = HOPAPI(session: session)
+        defer { session.invalidateAndCancel() }
+        await api.authorize("new-account-test-token", version: 2)
+        do { _ = try await api.request("/api/staff-messages/conversations", requiredAuthVersion: 1); XCTFail("Old session must be cancelled before transport.") }
+        catch is CancellationError {} catch { XCTFail("Expected local cancellation, got \(error)") }
+    }
     private func client(path: String, status: Int = 200, response: String = "{\"ok\":true}",
                         inspect: @escaping (URLRequest) throws -> Void = { _ in }) -> (HOPAPI, URLSession) {
         HOPTransportProtocol.registry.register(path: path) { request in

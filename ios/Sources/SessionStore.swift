@@ -94,7 +94,7 @@ enum SessionKeychain {
         guard let encoded = SessionKeychain.read(), let session = try? JSONDecoder().decode(EmployeeSession.self, from: encoded) else { return }
         guard session.expiresAt > Date() else { logout(); loginError = "Please sign in again to see your latest schedule."; return }
         sessionVersion += 1; employee = session.employee; expiry = session.expiresAt; HOPDeviceAlerts.shared.setEmployee(session.employee.id); await api.authorize(session.token, version: sessionVersion)
-        messages.bind(session.employee.id)
+        messages.bind(session.employee.id, authVersion: sessionVersion)
         loadSnapshot()
         await refresh()
     }
@@ -109,7 +109,7 @@ enum SessionKeychain {
             let session = EmployeeSession(employee: minimalIdentity(person), token: token, expiresAt: Date().addingTimeInterval(result["expires_in"].number))
             try SessionKeychain.write(JSONEncoder().encode(session))
             employee = person; expiry = session.expiresAt; HOPDeviceAlerts.shared.setEmployee(person.id); week = HOPCalendar.tuesday(HOPCalendar.today()); screen = .home; await api.authorize(token, version: attempt)
-            messages.bind(person.id)
+            messages.bind(person.id, authVersion: attempt)
             loadSnapshot()
             await refresh()
         } catch { loginError = error.localizedDescription }

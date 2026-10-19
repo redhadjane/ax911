@@ -26,6 +26,7 @@ struct HOPChatAlert: Identifiable, Equatable { let id: String; let conversationI
     private(set) var employeeID = ""
     private(set) var activeConversationID: String?
     private var epoch = 0
+    private var authVersion: Int?
     private var selection = UUID()
     private var summaryTicket: UUID?
     private var detailTicket: UUID?
@@ -37,8 +38,9 @@ struct HOPChatAlert: Identifiable, Equatable { let id: String; let conversationI
     var unread: Int { conversations.reduce(0) { $0 + $1.unread } }
     var hasMore: Bool { earliestHasMore }
     init(api: HOPAPI) { self.api = api }
-    func bind(_ employeeID: String) {
-        guard self.employeeID != employeeID else { return }
+    func bind(_ employeeID: String, authVersion: Int? = nil) {
+        guard self.employeeID != employeeID || self.authVersion != authVersion else { return }
+        self.authVersion = authVersion
         epoch += 1; selection = UUID(); self.employeeID = employeeID; activeConversationID = nil
         conversations = []; people = []; messages = []; detail = nil; drafts = [:]; reports = []; blockedIDs = []
         loading = false; loadingThread = false; loadingOlder = false; sending = false; actionBusy = false
@@ -48,7 +50,7 @@ struct HOPChatAlert: Identifiable, Equatable { let id: String; let conversationI
     private func request(_ path: String, body: JSONValue? = nil) async throws -> JSONValue {
         guard !employeeID.isEmpty else { throw CancellationError() }; let version = epoch
         do {
-            let result = try await api.request("/api/staff-messages" + path, method: body == nil ? "GET" : "POST", body: body)
+            let result = try await api.request("/api/staff-messages" + path, method: body == nil ? "GET" : "POST", body: body, requiredAuthVersion: authVersion)
             guard version == epoch else { throw CancellationError() }; return result
         } catch let failure as HOPAPIError where failure.status == 401 {
             if version == epoch { sessionExpired?() }; throw failure
@@ -100,14 +102,14 @@ struct HOPChatAlert: Identifiable, Equatable { let id: String; let conversationI
     }
     func refreshThread() async {
         guard let id = activeConversationID, detailTicket == nil, foreground else { return }
-        let version = epoch, selected = selection, ticket = UUID(); detailTicket = ticket; loadingThread = true
+        let version = epoch, selected = selection, ticket = UUID(); detailTicket = ticket; loadingThread = detail == nil
         defer { if version == epoch, selected == selection, detailTicket == ticket { detailTicket = nil; loadingThread = false } }
         do {
             let result = try await request("/conversations/" + id)
             guard version == epoch, selected == selection, activeConversationID == id else { return }
             let next = HOPChatDetail(result), incoming = result["messages"].values.map(HOPChatMessage.init)
             if detail == nil { earliestHasMore = next.hasMore }
-            detail = next; let merged = HOPChatPolicy.merge(messages, incoming); if messages != merged { messages = merged }; error = nil
+            if detail != next { detail = next }; let merged = HOPChatPolicy.merge(messages, incoming); if messages != merged { messages = merged }; error = nil
             await markRead(id)
         } catch {
             if let failure = error as? HOPAPIError, [403,404].contains(failure.status), selected == selection { messages = []; detail = nil }
@@ -125,7 +127,7 @@ struct HOPChatAlert: Identifiable, Equatable { let id: String; let conversationI
         let version = epoch, selected = selection; loadingOlder = true
         defer { if version == epoch, selected == selection { loadingOlder = false } }
         do {
-            let result = try await api.request("/api/staff-messages/conversations/" + id, query: ["before": String(first.sequence)])
+            let result = try await api.request("/api/staff-messages/conversations/" + id, query: ["before": String(first.sequence)], requiredAuthVersion: authVersion)
             guard version == epoch, selected == selection else { return }
             messages = HOPChatPolicy.merge(messages, result["messages"].values.map(HOPChatMessage.init)); earliestHasMore = result["has_more"].flag
         } catch let failure as HOPAPIError where failure.status == 401 { if version == epoch { sessionExpired?() } }

@@ -30,7 +30,8 @@ actor HOPAPI {
     }
     func authorize(_ token: String, version: Int = 0) { guard version >= authVersion else { return }; authVersion = version; self.token = token }
 
-    func request(_ path: String, method: String = "GET", query: [String: String] = [:], body: JSONValue? = nil, tokenOverride: String? = nil) async throws -> JSONValue {
+    func request(_ path: String, method: String = "GET", query: [String: String] = [:], body: JSONValue? = nil, tokenOverride: String? = nil, requiredAuthVersion: Int? = nil) async throws -> JSONValue {
+        if let requiredAuthVersion, requiredAuthVersion != authVersion { throw CancellationError() }
         guard path.hasPrefix("/api/"), !path.contains(".."), var components = URLComponents(url: Self.baseURL.appendingPathComponent(String(path.dropFirst())), resolvingAgainstBaseURL: false) else {
             throw HOPAPIError(status: 0, message: "The requested HOP action is not valid.")
         }

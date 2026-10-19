@@ -114,6 +114,7 @@ struct ChatThreadView: View {
     @State private var report: HOPChatMessage?
     @State private var confirmBlock = false
     @State private var followLatest = true
+    @State private var openedHistory = false
     private var title: String { chat.conversations.first { $0.id == conversationID }?.title ?? "Conversation" }
     private var draft: Binding<String> { Binding(get: { chat.drafts[conversationID]?.text ?? "" }, set: { chat.setDraft($0, for: conversationID) }) }
     var body: some View {
@@ -159,7 +160,9 @@ struct ChatThreadView: View {
                     Color.clear.frame(height: 1).id("message-bottom").onAppear { followLatest = true }.onDisappear { followLatest = false }
                 }.padding(16)
             }.scrollDismissesKeyboard(.interactively)
-                .onChange(of: chat.messages.last?.id) { _, _ in if followLatest { proxy.scrollTo("message-bottom", anchor: .bottom) } }
+                .onChange(of: chat.messages.last?.id) { _, id in
+                    if id != nil, !openedHistory || followLatest { proxy.scrollTo("message-bottom", anchor: .bottom); openedHistory = true }
+                }
                 .onChange(of: chat.sending) { was, sending in if was && !sending && chat.error == nil { followLatest = true; proxy.scrollTo("message-bottom", anchor: .bottom) } }
         }
     }

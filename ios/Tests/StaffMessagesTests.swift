@@ -35,6 +35,7 @@ final class StaffMessagesTests: XCTestCase {
     }
     func testTrustedThreadLinksAndNoExternalNavigation() {
         XCTAssertEqual(HOPChatPolicy.conversationID(from: "/employee/messages/#thread=\(thread)"), thread)
+        XCTAssertEqual(HOPChatPolicy.conversationID(from: "https://www.houseofpizzagaffney.com/command/messages/#thread=\(thread)"), thread)
         XCTAssertNil(HOPChatPolicy.conversationID(from: "https://evil.example/employee/messages/#thread=\(thread)"))
         XCTAssertNil(HOPChatPolicy.conversationID(from: "http://www.houseofpizzagaffney.com/employee/messages/#thread=\(thread)"))
         XCTAssertNil(HOPChatPolicy.conversationID(from: "/employee/messages/#thread=not-a-uuid"))

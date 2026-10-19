@@ -86,7 +86,7 @@ struct HOPChatAlert: Identifiable, Equatable { let id: String; let conversationI
             }
             seen = Dictionary(next.map { ($0.id, $0.lastMessageAt) }, uniquingKeysWith: { _, last in last })
             if conversations != next { conversations = next }
-            error = nil
+            if activeConversationID == nil { error = nil }
         } catch { handle(error, version: version) }
     }
     func open(_ id: String) async {

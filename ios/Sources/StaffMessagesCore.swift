@@ -85,7 +85,7 @@ public enum HOPChatPolicy {
     public static func conversationID(from raw: String) -> String? {
         guard let url = URL(string: raw, relativeTo: URL(string: "https://www.houseofpizzagaffney.com")!)?.absoluteURL,
               url.scheme == "https", ["www.houseofpizzagaffney.com", "houseofpizzagaffney.com"].contains(url.host ?? ""),
-              url.path == "/employee/messages/" || url.path == "/command/messages/",
+              ["employee/messages", "command/messages"].contains(url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))),
               let fragment = url.fragment, let components = URLComponents(string: "https://local.invalid/?" + fragment),
               let value = components.queryItems?.first(where: { $0.name == "thread" })?.value, UUID(uuidString: value) != nil else { return nil }
         return value.lowercased()

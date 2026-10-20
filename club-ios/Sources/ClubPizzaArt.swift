@@ -25,32 +25,49 @@ struct ClubPizzaArt: View {
     var sauce = ""
     var thin = false
     @Environment(\.accessibilityReduceMotion) private var reduced
+    private var cheeseColors:[Color] { sauce.lowercased().contains("alfredo") ? [Color(red:1,green:0.95,blue:0.77),Color(red:0.86,green:0.72,blue:0.41)] : [Color(red:1,green:0.86,blue:0.43),Color(red:0.94,green:0.67,blue:0.24)] }
+    private var animationKey:[String] { layers.map { [$0.id,$0.portion,$0.style,String($0.quantity)].joined(separator:"|") } }
+    private var spokenLabel:String { "Pizza illustration. " + (layers.isEmpty ? "No selected additions." : layers.map { [$0.name,$0.portion,$0.style].joined(separator:", ") }.joined(separator:". ")) }
     var body: some View {
         ZStack {
+            base
+            bakedCheese
+            ForEach(layers) { layer in ClubToppingCanvas(layer:layer).padding(31).transition(.scale(scale:0.85).combined(with:.opacity)) }
+        }.aspectRatio(1,contentMode:.fit).animation(reduced ? nil : .spring(response:0.35,dampingFraction:0.78),value:animationKey)
+            .accessibilityElement(children:.ignore).accessibilityLabel(spokenLabel)
+    }
+    private var base:some View {
+        ZStack {
             Circle().fill(ClubStyle.gold.opacity(0.10)).padding(2)
-            Circle().fill(.black.opacity(0.1)).padding(18).blur(radius:12).offset(y:14)
+            Circle().fill(Color.black.opacity(0.1)).padding(18).blur(radius:12).offset(y:14)
             Circle().fill(RadialGradient(colors:[Color(red:0.94,green:0.70,blue:0.32),Color(red:0.63,green:0.30,blue:0.09)],center:.center,startRadius:70,endRadius:145)).padding(thin ? 13 : 10)
             Circle().fill(Color(red:0.68,green:0.18,blue:0.08)).padding(thin ? 22 : 28)
-            Circle().fill(RadialGradient(colors:sauce.lowercased().contains("alfredo") ? [Color(red:1,green:0.95,blue:0.77),Color(red:0.86,green:0.72,blue:0.41)] : [Color(red:1,green:0.86,blue:0.43),Color(red:0.94,green:0.67,blue:0.24)],center:.topLeading,startRadius:10,endRadius:250)).padding(thin ? 27 : 33)
-            Canvas { context, size in
-                let center = CGPoint(x:size.width/2,y:size.height/2), radius = min(size.width,size.height)/2
-                for point in ClubBuilder.positions(seed:"baked-cheese",portion:"whole",count:45) {
-                    let spot = CGRect(x:center.x+point.0*radius-2,y:center.y+point.1*radius-2,width:5,height:3)
-                    context.fill(Path(ellipseIn:spot),with:.color(Color(red:0.57,green:0.28,blue:0.08).opacity(0.28)))
-                }
-            }.padding(34)
-            ForEach(layers) { layer in
-                Canvas { context, size in
-                    let center = CGPoint(x:size.width/2,y:size.height/2), radius = min(size.width,size.height)/2
-                    let count = min(36,(layer.style == "extra" ? 19 : layer.style == "light" ? 7 : 12) * min(2,layer.quantity))
-                    for point in ClubBuilder.positions(seed:layer.id,portion:layer.portion,count:count) {
-                        drawIngredient(layer.kind,context:&context,center:CGPoint(x:center.x+point.0*radius,y:center.y+point.1*radius),radius:radius*0.085)
-                    }
-                }.padding(31).transition(.scale(scale:0.85).combined(with:.opacity))
-            }
-        }.aspectRatio(1,contentMode:.fit).animation(reduced ? nil : .spring(response:0.35,dampingFraction:0.78),value:layers.map { $0.id+$0.portion+$0.style+String($0.quantity) })
-            .accessibilityElement(children:.ignore).accessibilityLabel("Pizza illustration. " + (layers.isEmpty ? "No selected additions." : layers.map { $0.name + ", " + $0.portion + ", " + $0.style }.joined(separator:". ")))
+            Circle().fill(RadialGradient(colors:cheeseColors,center:.topLeading,startRadius:10,endRadius:250)).padding(thin ? 27 : 33)
+        }
     }
+    private var bakedCheese:some View {
+        Canvas { context, size in
+            let center = CGPoint(x:size.width/2,y:size.height/2)
+            let radius = min(size.width,size.height)/2
+            for point in ClubBuilder.positions(seed:"baked-cheese",portion:"whole",count:45) {
+                let spot = CGRect(x:center.x+CGFloat(point.0)*radius-2,y:center.y+CGFloat(point.1)*radius-2,width:5,height:3)
+                context.fill(Path(ellipseIn:spot),with:.color(Color(red:0.57,green:0.28,blue:0.08).opacity(0.28)))
+            }
+        }.padding(34)
+    }
+}
+private struct ClubToppingCanvas:View {
+    let layer:ClubToppingLayer
+    var body:some View { Canvas { context, size in
+        let center=CGPoint(x:size.width/2,y:size.height/2)
+        let radius=min(size.width,size.height)/2
+        let factor:Int=layer.style == "extra" ? 19 : layer.style == "light" ? 7 : 12
+        let count=min(36,factor*min(2,layer.quantity))
+        for point in ClubBuilder.positions(seed:layer.id,portion:layer.portion,count:count) {
+            let location=CGPoint(x:center.x+CGFloat(point.0)*radius,y:center.y+CGFloat(point.1)*radius)
+            drawIngredient(layer.kind,context:&context,center:location,radius:radius*0.085)
+        }
+    } }
 }
 private func drawIngredient(_ kind: ClubIngredient, context: inout GraphicsContext, center: CGPoint, radius r: CGFloat) {
     func ellipse(_ dx:CGFloat,_ dy:CGFloat,_ w:CGFloat,_ h:CGFloat)->Path { Path(ellipseIn:CGRect(x:center.x+dx*r,y:center.y+dy*r,width:w*r,height:h*r)) }

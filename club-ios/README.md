@@ -1,6 +1,27 @@
 # HOP Club — native customer iPhone app
 
-Native SwiftUI customer test app using the existing HOP Club V2 customer bearer session. Independent bundle ID: `com.houseofpizza.hopclub.ios`. iOS 17+, portrait iPhone, version 0.2.0 (2). No manager/employee credentials or API routes are bundled into this client.
+Native SwiftUI customer test app using the existing HOP Club V2 customer bearer session. Independent bundle ID: `com.houseofpizza.hopclub.ios`. iOS 17+, portrait iPhone, version 0.3.0 (3). No manager/employee credentials or API routes are bundled into this client.
+
+## Visual ordering studio — 0.3.0
+
+Native Size / Base / Toppings / Review steps; original illustrated pizza and
+ingredient tiles; real whole/left/right, style and quantity capabilities from the
+catalog; current-label ingredient mapping (legacy IDs may have different names);
+bounded selection counts; server-quoted food subtotal; editable bag items; and
+a short add-to-bag animation respecting Reduce Motion. Real catalog photos are
+retained where present. Illustrations describe selected additions, not the full
+recipe, allergen contents or an exact food photograph.
+
+Pickup review explicitly says pay at pickup. The request receipt appears only
+after the existing server acknowledges an order; it does not claim payment,
+host confirmation or kitchen progress. Apple Pay/Apple Cash capture is NOT
+implemented, configured or simulated. Native push remains outside this build.
+The website, menu records, kitchen contracts, rewards and production backend are
+unchanged. No tests place production orders or redeem rewards.
+
+This is an original HOP interface, not artwork or layouts copied from another
+restaurant. Test the compiled IPA on an authorized iPhone; the conversation
+preview is a separate no-network prototype, not a live ordering session.
 
 ## iOS presentation rebuild — 0.2.0
 

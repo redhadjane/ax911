@@ -29,6 +29,6 @@ enum J: Codable, Equatable, Sendable, Identifiable {
     func set(_ values:[String:J]) -> J { .object(object.merging(values) { _,n in n }) }
     static func s(_ s:String) -> J { .string(s) }
     static func n(_ n:Int) -> J { .number(Double(n)) }
-    var pretty:String { guard let data = try? JSONEncoder().encode(self) else { return "" }; return String(data:data,encoding:.utf8) ?? "" }
+    var pretty:String { let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys];guard let data = try? encoder.encode(self) else { return "" }; return String(data:data,encoding:.utf8) ?? "" }
     var humanText:String {switch self {case .array(let values):return values.map(\.humanText).joined(separator:"\n");case .object(let values):return values.keys.sorted().map {$0.replacingOccurrences(of:"_",with:" ").capitalized+": "+(values[$0]?.humanText ?? "")}.joined(separator:"\n");default:return text}}
 }

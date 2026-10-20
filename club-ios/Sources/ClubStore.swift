@@ -70,17 +70,24 @@ private final class ClubRedirectGuard:NSObject,URLSessionTaskDelegate {
         let result=try await api.get("/api/hopclub/v2/orders/quote",method:"POST",body:.object(["fulfillment_type":.s("pickup"),"tip":.number(tip),"items":.array(ClubMenuRules.requestItems(cart))]))
         guard !result["pricing"]["pricing_token"].text.isEmpty else{throw ClubFailure(status:0,message:"A current price quote is required before ordering.")};return result["pricing"]
     }
-    func place(_ body:J) async {
-        guard !busy else{return};busy=true;defer {busy=false}
+    func quoteLine(_ line:J) async throws -> J {
+        guard ordering else { throw ClubFailure(status:0,message:"Pickup ordering is not currently available.") }
+        let result=try await api.get("/api/hopclub/v2/orders/quote",method:"POST",body:.object(["fulfillment_type":.s("pickup"),"tip":.n(0),"items":.array(ClubMenuRules.requestItems([line]))]))
+        guard !result["pricing"]["pricing_token"].text.isEmpty else { throw ClubFailure(status:0,message:"A restaurant quote could not be loaded.") };return result["pricing"]
+    }
+    @discardableResult func place(_ body:J) async -> J? {
+        guard !busy,signedIn else{return nil};let ticket=generation;busy=true;defer {if generation == ticket {busy=false}}
         do {
             let owner=customer.id
             let request=pending ?? .object(["kind":.s("order"),"key":.s(UUID().uuidString),"body":body])
             guard request["kind"].text == "order" else{throw ClubFailure(status:0,message:"Resolve the pending reward request before placing an order.")}
             try api.vault.savePending(request,owner:owner);pending=request
             let result=try await api.get("/api/hopclub/v2/orders",method:"POST",body:request["body"],key:request["key"].text)
+            guard generation == ticket,customer.id == owner else{return nil}
             guard !result["order"].id.isEmpty else{throw ClubFailure(status:0,message:"The order response was incomplete. Check order history before trying again.")}
             try api.vault.savePending(nil,owner:owner);pending=nil;cart=[];notice="Pickup request received. A host must confirm it by phone before it goes to the kitchen.";await refresh()
-        }catch {report(error)}
+            guard generation == ticket,customer.id == owner else{return nil};return result["order"]
+        }catch {if generation == ticket {report(error)};return nil}
     }
     func redeem(_ reward:J) async -> J? {
         guard !busy else{return nil};busy=true;defer {busy=false}

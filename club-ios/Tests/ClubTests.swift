@@ -2,6 +2,61 @@ import XCTest
 @testable import ClubCore
 
 final class ClubTests:XCTestCase {
+    func testBuilderArtworkUsesCurrentLabelNotLegacyOptionID() {
+        let option:J = .object(["id":.s("topping-chicken"),"name":.s("Green Peppers")])
+        let group:J = .object(["id":.s("toppings"),"name":.s("Toppings"),"allow_half":.bool(true),"options":.array([option])])
+        let item:J = .object(["name":.s("Steak Pizza"),"customization":.object(["modifier_groups":.array([group])])])
+        let choice:J = .object(["option_id":.s(option.id),"portion":.s("left"),"style":.s("extra"),"quantity":.n(1)])
+        let layer=ClubBuilder.layers(item,selections:[group.id:[choice]]).first
+        XCTAssertEqual(layer?.kind,.pepper);XCTAssertEqual(layer?.portion,"left");XCTAssertEqual(layer?.style,"extra")
+        XCTAssertEqual(ClubIngredient.identify("Pinnapple"),.pineapple)
+        XCTAssertEqual(ClubIngredient.identify("Jalopinios"),.jalapeno)
+    }
+    func testBuilderStepsHaveSizeBaseToppingsAndReview() {
+        let crust:J = .object(["id":.s("crust"),"name":.s("Crust"),"sort_order":.n(10)])
+        let toppings:J = .object(["id":.s("toppings"),"name":.s("Toppings"),"allow_half":.bool(true)])
+        let item:J = .object(["name":.s("Pizza"),"size_prices":.object(["Large":.n(20)]),"customization":.object(["modifier_groups":.array([toppings,crust])])])
+        XCTAssertEqual(ClubBuilder.steps(item).map(\.id),["size","base","toppings","finish"])
+        XCTAssertEqual(ClubBuilder.steps(.object(["name":.s("Spaghetti")])).map(\.id),["finish"])
+        XCTAssertFalse(ClubBuilder.isPizza(.object(["name":.s("Dessert Pizza")])))
+    }
+    func testHalfToppingPositionsAreDeterministicAndStayOnCorrectSide() {
+        for portion in ["left","right","whole"] {
+            let a=ClubBuilder.positions(seed:"same",portion:portion,count:20),b=ClubBuilder.positions(seed:"same",portion:portion,count:20)
+            XCTAssertEqual(a.count,20)
+            for index in a.indices {XCTAssertEqual(a[index].0,b[index].0);XCTAssertEqual(a[index].1,b[index].1);XCTAssertLessThan(hypot(a[index].0,a[index].1),0.9);if portion == "left" {XCTAssertLessThan(a[index].0,0)};if portion == "right" {XCTAssertGreaterThan(a[index].0,0)}}
+        }
+        XCTAssertEqual(ClubBuilder.positions(seed:"bounded",portion:"whole",count:9999).count,80)
+    }
+    func testBuilderHonorsLimitsAndActualPortionAndStyleCapabilities() {
+        let option:J = .object(["id":.s("a"),"name":.s("Pepperoni"),"allow_whole":.bool(false),"allow_left":.bool(true),"allow_right":.bool(false),"available_as_extra":.bool(false),"default_selected":.bool(true)])
+        let other:J = .object(["id":.s("b"),"name":.s("Ham")])
+        let group:J = .object(["id":.s("g"),"allow_half":.bool(true),"supports_styles":.bool(true),"max_selections":.n(1),"options":.array([option,other])])
+        XCTAssertEqual(ClubBuilder.portions(group,option),["left"])
+        XCTAssertEqual(ClubBuilder.styles(group,option),["regular"])
+        let selected=ClubBuilder.toggle(group,option:option,current:[])
+        XCTAssertEqual(selected.first?["portion"].text,"left")
+        XCTAssertEqual(ClubBuilder.toggle(group,option:other,current:selected),selected)
+        XCTAssertTrue(ClubBuilder.toggle(group,option:option,current:selected).isEmpty)
+        let item:J = .object(["customization":.object(["modifier_groups":.array([group])])])
+        XCTAssertEqual(ClubMenuRules.defaults(item)["g"]?.first?["portion"].text,"left")
+    }
+    func testSideToppingsNotPaintedOnPizzaAndEditingPreservesWireIDs() {
+        let option:J = .object(["id":.s("a"),"name":.s("Mushroom"),"max_quantity":.n(2)])
+        let group:J = .object(["id":.s("g"),"name":.s("Toppings"),"supports_styles":.bool(true),"max_selections":.n(3),"options":.array([option])])
+        let item:J = .object(["id":.s("pizza"),"name":.s("Pizza"),"customization":.object(["modifier_groups":.array([group])])])
+        let side:J = .object(["option_id":.s("a"),"portion":.s("whole"),"style":.s("side"),"quantity":.n(1)])
+        XCTAssertTrue(ClubBuilder.layers(item,selections:["g":[side]]).isEmpty)
+        let line=ClubMenuRules.line(item,size:"Large",quantity:2,selections:["g":[side]],notes:"Please call")
+        let restored=ClubBuilder.restore(item,line:line)
+        XCTAssertEqual(restored["g"]?.first?["option_id"].text,"a")
+        XCTAssertEqual(restored["g"]?.first?["style"].text,"regular") // unsupported on-side removed from new catalog
+        let wire=ClubMenuRules.requestItems([line])[0]
+        XCTAssertTrue(wire["display_options"].isNull);XCTAssertTrue(wire["image_url"].isNull);XCTAssertTrue(wire["price"].isNull)
+    }
+    func testStableSnapshotsDoNotRequoteBecauseDictionaryOrderChanged() {
+        XCTAssertEqual(J.object(["b":.n(2),"a":.n(1)]).pretty,J.object(["a":.n(1),"b":.n(2)]).pretty)
+    }
     func testCustomerOnlyRoutes() {
         XCTAssertNotNil(ClubPolicy.url("/api/hopclub/v2/me"))
         XCTAssertNotNil(ClubPolicy.url("/api/hopclub/v2/orders",method:"POST"))

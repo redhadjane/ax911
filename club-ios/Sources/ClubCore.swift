@@ -29,7 +29,7 @@ enum ClubMenuRules {
     static func groups(_ item:J)->[J] {item["customization"]["modifier_groups"].array.filter {$0["is_active"] != .bool(false) && $0["online_visible"] != .bool(false) && !$0["archived"].truth}}
     static func sizes(_ item:J)->[String] {item["size_prices"].object.keys.sorted {item["size_prices"][$0].number<item["size_prices"][$1].number}}
     static func defaults(_ item:J)->[String:[J]] {
-        Dictionary(uniqueKeysWithValues:groups(item).map {group in (group.id,group["options"].array.filter {$0["is_active"] != .bool(false) && $0["default_selected"].truth}.map {option in .object(["option_id":.s(option.id),"portion":.s("whole"),"style":.s("regular"),"quantity":.n(1)])})})
+        Dictionary(uniqueKeysWithValues:groups(item).map {group in (group.id,group["options"].array.filter {$0["is_active"] != .bool(false) && $0["default_selected"].truth && !ClubBuilder.portions(group,$0).isEmpty}.map {option in .object(["option_id":.s(option.id),"portion":.s(ClubBuilder.portions(group,option).first ?? "whole"),"style":.s("regular"),"quantity":.n(1)])})})
     }
     static func validation(_ item:J,size:String,selections:[String:[J]])->String? {
         if !sizes(item).isEmpty && !sizes(item).contains(size) {return "Choose a size."}
